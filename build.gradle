@@ -1,0 +1,115 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "http://repo.spring.io/snapshot" }
+        maven { url "http://repo.spring.io/milestone" }
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath 'org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.11'
+        classpath 'net.sourceforge.plantuml:plantuml:8041'
+    }
+}
+plugins {
+    id 'org.asciidoctor.convert' version '1.5.3'
+}
+apply plugin: "io.spring.dependency-management"
+
+ext {
+    AWS_URL = System.env.AWS_URL
+    AWS_ACCESS_KEY = System.env.AWS_ACCESS_KEY
+    AWS_SECRET_KEY = System.env.AWS_SECRET_KEY
+}
+
+configurations {
+    plantuml
+}
+
+allprojects {
+    group = 'com.cinchfinancial'
+    version = '1.0-SNAPSHOT'
+}
+
+    apply plugin: 'kotlin'
+    apply plugin: 'spring-boot'
+    apply plugin: 'maven-publish'
+
+repositories {
+
+    mavenCentral()
+    jcenter()
+    maven { url "http://repo.spring.io/snapshot" }
+    maven { url "http://repo.spring.io/milestone" }
+    maven { url "http://repository.jetbrains.com/all" }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name 'artifacts'
+            url "$AWS_URL/snapshot"
+            credentials(AwsCredentials) {
+                accessKey AWS_ACCESS_KEY
+                secretKey AWS_SECRET_KEY
+            }
+        }
+    }
+}
+
+dependencies {
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+
+    compile "org.springframework.boot:spring-boot-starter:$springBootVersion"
+    compile "org.springframework.boot:spring-boot-starter-web:$springBootVersion"
+
+    compile "org.springframework.data:spring-data-neo4j:$springNeo4jVersion"
+
+    compile "org.apache.camel:camel-core:$camelVersion"
+    compile "org.apache.camel:camel-spring:$camelVersion"
+    compile "org.apache.camel:camel-jackson:$camelVersion"
+    compile "org.apache.camel:camel-rabbitmq:$camelVersion"
+
+    compile 'org.apache.poi:poi:3.14'
+    compile 'org.apache.poi:poi-ooxml:3.14'
+    compile 'org.apache.poi:ooxml-schemas:1.3'
+
+    testCompile("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
+
+    testCompile("io.kotlintest:kotlintest:1.3.3")
+    //testCompile ('org.jetbrains.spek:spek:1.0.25')
+    testCompile ('com.nhaarman:mockito-kotlin:0.6.0')
+
+    plantuml('net.sourceforge.plantuml:plantuml:8041')
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = "${project.gradleVersion}"
+}
+
+asciidoctor {
+    dependsOn 'plantuml'
+    attributes 'version':project.version
+    attributes 'imageDir':"$buildDir/plantuml"
+}
+
+task plantuml(type: JavaExec, description: 'Generate plantuml diagrams') {
+    def srcFiles = "$projectDir/src/docs/plantuml/**"
+    def outDir = "$buildDir/plantuml"
+    inputs.file file(srcFiles)
+    outputs.dir file(outDir)
+    main 'net.sourceforge.plantuml.Run'
+    jvmArgs '-Djava.awt.headless=true'
+    args '-o', outDir, srcFiles
+    classpath configurations.plantuml
+    doFirst() {
+        file(outDir).mkdirs()
+    }
+}
