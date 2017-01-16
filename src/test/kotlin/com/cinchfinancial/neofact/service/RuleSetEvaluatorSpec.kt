@@ -33,6 +33,7 @@ class RuleSetEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
     }
 
     private fun createModelInputs() : Map<String, ModelInput> {
+        //ci.total_current_debt
         return mapOf()
     }
 

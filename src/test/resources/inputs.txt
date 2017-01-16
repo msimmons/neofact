@@ -1,0 +1,4 @@
+has_debt,total_current_debt>0
+on_zero_card,average_estimated_apr_all_credit_cards_current_month = 0
+cash_flow_trend,if(thirty_day_average_net_cash_flow * -3 < deposits_sum, -1, 1)
+can_payoff,available_cash_for_debt>total_current_debt
