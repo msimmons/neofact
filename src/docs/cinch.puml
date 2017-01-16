@@ -1,0 +1,41 @@
+@startuml
+
+start
+if (Registered) then (no)
+partition Onboarding {
+:Register;
+:Demographics;
+:Credit Report;
+:Link Accounts;
+fork
+:Account1>
+fork again
+:AccountN>
+end fork
+:Account Validate;
+:Account Reconcile;
+}
+else (yes)
+partition Logon {
+:Logon;
+:Update Accounts>
+}
+endif
+:MVP|
+partition Evaluation {
+:Model Inputs>
+fork
+:Category Assessment>
+:Category Ranking>
+fork again
+:Generate Hunches>
+end fork
+:Rank Hunches>
+}
+partition Interaction {
+repeat
+:Follow Hunch;
+repeat while (More Info)
+:Action Plan;
+}
+@enduml
