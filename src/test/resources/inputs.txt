@@ -1,4 +1,478 @@
-has_debt,total_current_debt>0
-on_zero_card,average_estimated_apr_all_credit_cards_current_month = 0
-cash_flow_trend,if(thirty_day_average_net_cash_flow * -3 < deposits_sum, -1, 1)
-can_payoff,available_cash_for_debt>total_current_debt
+Name: ci.total_current_debt
+Type: usd
+Estimated: false
+Description: the sum of all debt the user holds
+Formula: ci.total_current_debt_all_trades
+
+
+Name: ci.fico_score
+Type: int
+Estimated: false
+Description: the fico score of the user
+Formula: user_profile.transunion.fico_score_amount
+
+
+Name: ci.debt_to_income_ratio
+Type: percent
+Estimated: false
+Description: the sum of all debt the user pays per month divided by the user's income
+Formula: user_profile.mx.debt_income_ratio
+
+Name: ci.employed_less_than_12_months
+Type: boolean
+Estimated: false
+Description: true/false around the user's length of employment being less than a year
+Formula: user_profile.user.employed_less_than_a_year_condition
+
+
+Name: ci.number_delinquencies_last_2_years
+Type: int
+Estimated: false
+Description: the count of all deliquencies that the user has had in the past 2 years
+Formula: user_profile.transunion.delinquencies_last_2_years_count
+
+
+Name: ci.number_derogatory_public_records
+Type: int
+Estimated: false
+Description: Number of 90 days past due or worse items ever (excluding medical collection items)
+Formula: user_profile.transunion.derogatory_public_records
+
+
+Name: ci.gross_annual_income
+Type: usd
+Estimated: false
+Description: the gross annual income of the user
+Formula: user_profile.user.income_gross_annual_amount
+
+
+Name: ci.gross_monthly_income
+Type: usd
+Estimated: false
+Description: the gross monthly income of the user
+Formula: user_profile.user.income_gross_annual_amount / 12
+
+
+Name: ci.number_credit_inquires_last_6_months
+Type: int
+Estimated: false
+Description: the count of all credit inquiries the user has had in the past 6 months
+Formula: user_profile.transunion.credit_inquiries_last_6_months_count
+
+
+Name: ci.number_total_debt_accounts
+Type: int
+Estimated: false
+Description: the count of all debt accounts the user has
+Formula: user_profile.transunion.debt_accounts_count
+
+
+Name: ci.total_utilization_all_credit_cards
+Type: percent
+Estimated: false
+Description: the sum of balances on all cards divided by the sum of all credit lines for each card
+Formula: credit_card.mx.utilization_amount
+
+
+Name: ci.total_balance_all_credit_cards
+Type: usd
+Estimated: false
+Description: the sum of all current balances on all credit card accounts
+Formula: credit_card.mx.balance_sum
+
+
+Name: ci.credit_history_length
+Type: months
+Estimated: false
+Description: the length in months of the user's credit history"
+Formula: user_profile.transunion.credit_history_months
+
+
+Name: ci.number_public_bankruptcies
+Type: int
+Estimated: false
+Description: the count of public bankruptcies that user has had
+Formula: user_profile.transunion.bankruptcies_public_count
+
+
+Name: ci.number_tax_liens
+Type: int
+Estimated: false
+Description: the count of all tax liens that the user has had
+Formula: user_profile.transunion.tax_liens_count
+
+
+Name: ci.debt_repayment_months_at_0_percent
+Type: months
+Estimated: false
+Description: the number of months it would take the user to repay the debt back while on a 0% interest rate product
+Formula: user_profile.mx.debt_repayment_0_percent_months
+
+
+Name: ci.afford_7_year_personal_loan
+Type: boolean
+Estimated: false
+Description: true/false around if the user can afford a 7 year personal loan
+Formula: user_profile.mx.personal_loan_7_year_afford_condition
+
+
+Name: ci.average_estimated_apr_all_credit_cards_current_month
+Type: percent
+Estimated: true
+Description: the mean of all estimated current interest rates across all credit card accounts
+Formula: credit_card.mx.interest_rate_estimated_current_average
+
+
+Name: ci.average_estimated_apr_all_credit_cards
+Type: percent
+Estimated: true
+Description: the mean of all estimated interest rates across all credit card accounts
+Formula: credit_card.mx.interest_rate_signal_average
+
+
+Name: ci.zero_percent_revolver
+Type: boolean
+Estimated: false
+Description: true/false around if the credit_card.behavior_revolver_0_percent_count is greater than zero
+Formula: user_profile.mx.behavior_revolver_0_percent_condition
+
+
+Name: ci.available_cash_for_debt
+Type: usd
+Estimated: false
+Description: the amount of cash the user has available to put towards debt payments
+Formula: user_profile.user.debt_payment_cash_available_amount
+
+
+Name: ci.average_monthly_net_cash_flow_all_checking_accounts
+Type: usd
+Estimated: false
+Description: the mean monthly balance change for all checking accounts
+Formula: checking.mx.flow_net_average
+
+
+Name: ci.sloppy_payment_behavior
+Type: boolean
+Estimated: false
+Description: **mgk be more specific** true/false around the payment
+behavior sloppy condition on all credit card accounts
+Formula: credit_card.mx.payment_behavior_sloppy_condition
+
+
+Name: ci.preapproved_for_credit_card
+Type: boolean
+Estimated: false
+Description: true/false predicting if the user will be approved for a new credit card
+Formula: user_profile.system.credit_card_preapproval_condition
+
+
+Name: ci.preapproved_for_personal_loan
+Type: boolean
+Estimated: false
+Description: true/false around the user being qualified to be approved for a personal loan
+Formula: user_profile.system.personal_loan_preapproval_condition
+
+
+Name: ci.average_monthly_credit_card_payments
+Type: usd
+Estimated: false
+Description: the mean monthly credit transactions under the payments category on all credit card accounts
+Formula: credit_card.mx.credits_payments_average
+
+Name: ci.credit_card_payments_average_sum
+Type: usd
+Estimated: false
+Description: the sum of each credit card's average monthly payment total
+Formula: credit_card.mx.credits_payments_30_day_average_sum
+
+Name: ci.max_of_average_reported_apr_or_estimated_apr_all_credit_cards
+Type: percent
+Estimated: true
+Description: the mean of all interest rate signals across all credit card accounts
+Formula: credit_card.mx.interest_rate_signal_average
+
+
+Name: ci.total_current_debt_all_trades
+Type: usd
+Estimated: false
+Description: the sum of all debt the user holds
+Formula: sum(credit_card.accounts.transunion.balance_ending_amount)
+
+
+Name: ci.average_monthly_income_per_checking_account
+Type: usd
+Estimated: false
+Description: the mean monthly debits under the income category on all checking accounts
+Formula: checking.mx.credits_income_average
+
+
+Name: ci.average_monthly_credit_card_purchases
+Type: usd
+Estimated: false
+Description: the mean monthly debit transactions under the purchase categories on all credit card accounts
+Formula: credit_card.mx.debits_purchases_average
+
+
+Name: ci.checking_accounts_sum
+Type: usd
+Estimated: false
+Description: the sum of all checking account balances in the most recent closed statement periods
+Formula: checking.mx.balance_sum
+
+
+Name: ci.predicted_mean_apr_3_year_personal_loan
+Type: percent
+Estimated: true
+Description: the predicted mid apr that the user will receive from a 3 year personal loan
+Formula: user_profile.system.personal_loan_3_year_apr_mid_amount
+
+Name: ci.predicted_max_apr_3_year_personal_loan
+Type: percent
+Estimated: true
+Description: the predicted max apr that the user will receive from a 3 year personal loan
+Formula: user_profile.system.personal_loan_3_year_apr_high_amount
+
+Name: ci.predicted_low_apr_3_year_personal_loan
+Type: percent
+Estimated: true
+Description: the predicted low apr that the user will receive from a 3 year personal loan
+Formula: user_profile.system.personal_loan_3_year_apr_low_amount
+
+Name: ci.predicted_mean_apr_5_year_personal_loan
+Type: percent
+Estimated: true
+Description: the predicted mid apr that the user will receive from a 5 year personal loan
+Formula: user_profile.system.personal_loan_5_year_apr_mid_amount
+
+Name: ci.predicted_max_apr_5_year_personal_loan
+Type: percent
+Estimated: true
+Description: the predicted max apr that the user will receive from a 5 year personal loan
+Formula: user_profile.system.personal_loan_5_year_apr_high_amount
+
+Name: ci.predicted_low_apr_5_year_personal_loan
+Type: percent
+Estimated: true
+Description: the predicted min apr that the user will receive from a 5 year personal loan
+Formula: user_profile.system.personal_loan_5_year_apr_low_amount
+
+Name: ci.predicted_apr_credit_card
+Type: percent
+Estimated: true
+Description: the predicted apr that the user will receive from a new credit card
+Formula: user_profile.system.credit_card_apr_prediction
+
+
+Name: ci.location_state
+Type: us_state_code
+Estimated: false
+Description: the state that the user lives in
+Formula: user_profile.transunion.address_state_name
+
+
+Name: user.cell_phone.current_carrier
+Type: string
+Estimated: true
+Description: the name of the cell phone provider given by the fuzzy matching logic given at least two months of data with the same provider name
+Formula: user_profile.mx.debits_payments_mobile_phone_current_carrier_name
+
+
+Name: user.cell_phone.average_monthly_payment
+Type: usd
+Estimated: true
+Description: the mean monthly debit transactions identified as the payment associated with the cell phone provider name
+Formula: user_profile.mx.debits_payments_mobile_phone_30_day_average
+
+Name: ci.deposits_sum
+Type: usd
+Estimated: false
+Description: Total cash reservces
+**Question: TODO Ask Connor
+Formula: user_profile.mx.deposits_sum
+
+
+Name: ci.daily_average_cash_expenses
+Type: usd
+Estimated: true
+Description: Average daily debits for all checking and savings accounts.
+
+    (all checking debits + all savings debits) / num_days
+
+where num_days is the number of days elapsed between the first transaction
+considered and the last transaction considered.
+This value is never negative.
+Formula: ci.thirty_day_average_cash_expenses / 30
+
+
+Name: ci.thirty_day_average_cash_expenses
+Type: usd
+Estimated: true
+Description: Average monthly debits for all checking and savings accounts.
+This value is never negative.
+Formula: user_profile.mx.banking_debits_30_day_average
+
+
+Name: ci.daily_average_net_cash_flow
+Type: usd
+Estimated: true
+Description: Average daily cash flow for all checking and savings accounts.
+
+   (all checking credits + all savings credits -
+    (all checking debits + all savings debits)) / num_days
+
+where num_days is the number of days elapsed between the first transaction
+considered and the last transaction considered.
+Formula: ci.thirty_day_average_net_cash_flow / 30
+
+
+Name: ci.thirty_day_average_net_cash_flow
+Type: usd
+Estimated: true
+Description: Average monthly cash flow for all checking and savings accounts. This is
+the daily average net cash flow multiplied by 30.
+Formula: user_profile.mx.banking_credits_30_day_average - ci.thirty_day_average_cash_expenses
+
+
+Name: ci.daily_average_consumption_flow
+Type: usd
+Estimated: true
+Description: Average daily cash flow for all checking, savings, and
+credit card accounts.
+
+  ((all checking credits + all savings credits + all credit card credits) -
+   (all checking debits + all savings debits + all credit card debits)) / num_days
+
+where num_days is the number of days elapsed between the first transaction
+considered and the last transaction considered.
+Formula: ci.thirty_day_average_consumption_flow / 30
+
+
+Name: ci.debt_service
+Type: usd
+Estimated: true
+Description: Sum of all monthly credit card payments minus the sum of all credit
+card purchases.
+Formula: user_profile.mx.debt_service_amount
+
+
+Name: ci.thirty_day_average_consumption_flow
+Type: usd
+Estimated: true
+Description: Average monthly cash flow for all checking, savings, and
+credit card accounts. This is the daily average consumption flow multiplied by 30.
+Formula: ci.thirty_day_average_net_cash_flow +
+         (credit_card.mx.credits_30_day_average_sum - credit_card.mx.debits_30_day_average_sum)
+
+
+Name: ci.consumption_stress
+Type: boolean
+Estimated: false
+Description: Flag indicating the user is spending more each month than they should. The flag is
+true if all of the following are true
+
+  - ci.thirty_day_average_consumption_flow < 0
+  - ci.deposits_sum < 2 * ci.thirty_day_average_cash_expenses
+
+Formula: and(ci.thirty_day_average_consumption_flow < 0, ci.deposits_sum < 2 * ci.thirty_day_average_cash_expenses)
+
+
+Name: ci.credit_card_debt_repayment_stress
+Type: boolean
+Estimated: false
+Description: Flag indicating that paying credit card debt is currently burdensome for the user.
+To determine this, only the last 90 days of credit card data is considered
+
+This is true if for the last 90 days either
+
+  (total credit card payments / total credit card balance) < 5%
+
+    - OR -
+
+  user has sloppy behavior
+
+Formula: or((credit_card.mx.credits_30_day_average_sum / credit_card.mx.balance_sum) < 5,ci.sloppy_payment_behavior)
+
+
+Name: ci.affordable_debt_payment
+Type: usd
+Estimated: true
+Description: The amount the user should be paying towards their debt.
+**Question: Is this a debt service amount or a monthly payment amount? -> debt service
+
+TODO: only consider _monthly_payment_ceiling if both its components are positive
+Formula: min(
+              max(_stress_factor * _base_affordable_payment, ci.sum_of_minimum_payments_all_credit_cards),
+              _monthly_payment_ceiling
+            )
+
+Name: _monthly_payment_ceiling
+Formula: if(and(ci.debt_service >= 0,ci.thirty_day_average_net_cash_flow >= 0),
+             ci.debt_service + ci.thirty_day_average_net_cash_flow,
+             1000000000)
+# TODO: change this to POSITIVE_INFINITY when BI-2368 is done
+
+Name: _stress_factor
+Formula: if(and(ci.credit_card_debt_repayment_stress,ci.consumption_stress), 0.5,
+            if (or(ci.credit_card_debt_repayment_stress,ci.consumption_stress), 1.0,
+            1.5)
+           )
+
+Name: _base_affordable_payment
+Formula: max(ci.debt_service + (50% * ci.thirty_day_average_net_cash_flow),
+             ci.sum_of_minimum_payments_all_credit_cards)
+
+Name: ci.derogatory_marks
+Type: int
+Estimated: false
+Description: From the credit report -- number of derogatory marks ever reported (excludes medical collections)
+Formula: user_profile.transunion.derogatory_public_records
+
+Name: ci.delinquencies
+Type: int
+Estimated: false
+Description: From the credit report -- number of delinquencies within the last two years
+Formula: user_profile.transunion.delinquencies_last_2_years_count
+
+Name: ci.inquiries
+Type: int
+Estimated: false
+Description: From the credit report -- number of credit inquiries made within the last six months
+Formula: user_profile.transunion.credit_inquiries_last_6_months_count
+
+Name: ci.sum_of_minimum_payments_all_credit_cards
+Type: usd
+Estimated: false
+Description: Sum of minimum payments across all credit cards, with a
+floor of _required_monthly_minimum_payment
+Formula: max(credit_card.mx.payment_minimum_average_sum, _required_monthly_minimum_payment)
+
+Name: _required_monthly_minimum_payment
+Type: usd
+Estimated: false
+Description: Floor of monthly minimum payment to payoff current credit card debt. This is used as a hard
+floor for payoff computations and recommendations.
+Formula: ((ci.average_estimated_apr_all_credit_cards / 12) + 1%) * ci.total_balance_all_credit_cards
+
+Name: ci.credit_card_balance_trend
+Type: enum
+Estimated: false
+Description: String characterization of balance trend across all credit cards for the observable transaction period
+Formula: if(credit_card.mx.balance_ending_balance_beginning_delta < -500, "decreasing_rapidly",
+          if(credit_card.mx.balance_ending_balance_beginning_delta < 10, "decreasing",
+           if(credit_card.mx.balance_ending_balance_beginning_delta > 500, "increasing_rapidly",
+            if(credit_card.mx.balance_ending_balance_beginning_delta > 10, "increasing", "flat"))))
+
+Name: ci.checking_balance_ending_beginning_delta
+Type: usd
+Estimated: false
+Description: Delta between the current and beginning balances across all checking accounts
+Formula: checking.mx.balance_sum - checking.mx.balance_beginning_sum
+
+Name: ci.checking_balance_trend
+Type: enum
+Estimated: false
+Description: String characterization of balance trend across all checking accounts for the observable transaction period
+Formula: if(ci.checking_balance_ending_beginning_delta < -500, "decreasing_rapidly",
+          if(ci.checking_balance_ending_beginning_delta < 10, "decreasing",
+           if(ci.checking_balance_ending_beginning_delta > 500, "increasing_rapidly",
+            if(ci.checking_balance_ending_beginning_delta > 10, "increasing", "flat"))))

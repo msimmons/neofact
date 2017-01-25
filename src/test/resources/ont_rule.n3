@@ -1,0 +1,28 @@
+@prefix f: <http://cinchfinancial.com/Facts#> .
+@prefix : <http://cinchfinancial.com/RE#> .
+
+[
+      noValue(:credit_line_utilization f:hasDecimalValue ?clu)
+      (:credit_line_utilization f:hasDecimalValue ?clu)
+      print("clu" ?clu)
+      ->
+      (:keep_existing_card f:missing-fact :credit_line_utilization)
+]
+
+[
+rule1:
+  (:credit_line_utilization f:hasDecimalValue ?clu)
+  greaterThan(?clu,0.5)
+  ->
+  (:ruleset f:recommends :keep_existing_card)
+]
+
+[
+rule2:
+  (:credit_line_utilization f:hasDecimalValue ?clu)
+  (:user_profile_employment_length f:hasIntegerValue ?el)
+  lessThan(?clu,0.5)
+  greaterThan(?el, 4)
+  ->
+  (:ruleset f:does-not-recommend :keep_existing_card)
+]

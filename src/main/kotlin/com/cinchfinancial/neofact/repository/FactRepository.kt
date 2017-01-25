@@ -9,4 +9,5 @@ import org.springframework.stereotype.Repository
  */
 @Repository
 interface FactRepository : GraphRepository<Fact> {
+    fun findByName(name: String) : Fact?
 }

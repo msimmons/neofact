@@ -8,10 +8,10 @@ fun ruleset(init: RULESET.()->Unit) : RULESET {
     return ruleset
 }
 
-fun inputs(init: INPUTS.() ->Unit) : INPUTS {
+fun inputs(init: INPUTS.() ->Unit) : Map<String, INPUT> {
     val inputs = INPUTS()
     inputs.init()
-    return inputs
+    return inputs.inputs
 }
 
 class INPUT(val name: String) {
@@ -25,13 +25,14 @@ class INPUT(val name: String) {
 }
 
 class INPUTS {
-    val inputs = mutableListOf<INPUT>()
 
-    val declare=this
+    val inputs = mutableMapOf<String, INPUT>()
+    val define =this
 
-    operator fun invoke(name: String) : INPUT {
-        val input = INPUT(name)
-        return input
+    infix fun input(name: String) : INPUT {
+        val i = INPUT(name)
+        inputs.put(name, i)
+        return i
     }
 }
 
@@ -77,14 +78,14 @@ class RULESET {
 }
 
 fun doit() {
-    val inputs = mapOf<String, Any?>()
-    inputs {
-        declare("foo") formula {BigDecimal.ZERO}
+
+    val mi = inputs {
+        define input "foo" formula {BigDecimal.ZERO}
     }
 
     ruleset {
         rule {
-            eval {inputs["ci.foobar"]==inputs["ci.baz"] && false}
+            eval {mi["ci.foobar"]==mi["ci.baz"] && false}
             eval {true}
             recommend strategy "something" because "it's good" because "reason2"
             recommend against "other" because "it sucks"

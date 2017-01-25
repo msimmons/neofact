@@ -14,10 +14,10 @@ import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.File
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
+import kotlin.system.measureTimeMillis
 
 /**
  * Evaluate a ruleset by collecting all the facts, model inputs and rule statements and evaluating them in a worksheet
@@ -28,8 +28,59 @@ class RuleSetEvaluator {
 
     private val wb: Workbook = XSSFWorkbook()
     private val factSheet = wb.createSheet("Facts")
+    private val inputSheet = wb.createSheet("Inputs")
     private val ruleSheet = wb.createSheet("Rules")
     private val evaluator = wb.creationHelper.createFormulaEvaluator()
+
+    /**
+     * Evaluate the given model inputs against the given facts
+     * and return the calculated values of the model inputs
+     */
+    fun evaluate(modelInputs: Collection<ModelInput>, facts : Map<String,Any?>) : Map<String, Any?> {
+        // Add each fact to the fact sheet
+        var row = 0
+        facts.forEach { entry ->
+            addToSheet(factSheet, ++row, entry.key, entry.value)
+        }
+        // Add each model input the input sheet
+        row = 0
+        modelInputs.forEach { input ->
+            addNameToSheet(inputSheet, ++row, input.name)
+        }
+        modelInputs.forEach { input ->
+            addFormulaToSheet(inputSheet, input.name, input.formula)
+        }
+
+        // Evaluate all inputs
+        val elapsed = measureTimeMillis {
+            evaluator.evaluateAll()
+        }
+        logger.debug("Evaulation time: $elapsed ms")
+
+        // Collect values of all inputs
+        val result = mutableMapOf<String, Any?>()
+        modelInputs.forEach { input ->
+            val name = wb.getName(input.name)
+            if (name == null) null
+            else {
+                val reference = AreaReference(name.refersToFormula, SpreadsheetVersion.EXCEL2007)
+                val cell = inputSheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
+                when (cell.cellType) {
+                    Cell.CELL_TYPE_FORMULA -> {
+                        when(cell.cachedFormulaResultType) {
+                            Cell.CELL_TYPE_ERROR -> result[input.name] = ErrorEval.getText(cell.errorCellValue.toInt())
+                            Cell.CELL_TYPE_BOOLEAN -> result[input.name] = cell.booleanCellValue
+                            Cell.CELL_TYPE_NUMERIC -> result[input.name] = BigDecimal.valueOf(cell.numericCellValue)
+                            Cell.CELL_TYPE_STRING -> result[input.name] = cell.stringCellValue
+                            else -> result[input.name] = null
+                        }
+                    }
+                }
+            }
+        }
+        //wb.write(File("inputs.xlsx").outputStream())
+        return result
+    }
 
     /**
      * Evaluate the given ruleset against the given facts
@@ -78,8 +129,31 @@ class RuleSetEvaluator {
             val cell = ruleSheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
             Result(rule, cell.booleanCellValue, missingInputs)
         }
-        wb.write(File("foo.xlsx").outputStream())
+        //wb.write(File("${ruleSet.name}.xlsx").outputStream())
         return results
+    }
+
+    /**
+     * Add a named range only to the sheet for forward declarations
+     * of inputs used by other inputs
+     */
+    private fun addNameToSheet(sheet: Sheet, row: Int, name: String) {
+        val currentRow = sheet.createRow(row)
+        val nameCell = currentRow.createCell(0)
+        nameCell.setCellValue(name)
+        val valueCell = currentRow.createCell(1)
+        val namedRange = wb.createName()
+        namedRange.nameName = name
+        namedRange.refersToFormula = "${sheet.sheetName}!${valueCell.address.formatAsString()}"
+        logger.debug("$name: ${namedRange.refersToFormula}")
+    }
+
+    private fun addFormulaToSheet(sheet: Sheet, name: String, formula: String) {
+        val namedRange = wb.getName(name) ?: return
+        val reference = AreaReference(namedRange.refersToFormula, SpreadsheetVersion.EXCEL2007)
+        val cell = sheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
+        logger.debug("Adding formula for $name: $formula")
+        cell.cellFormula = formula
     }
 
     /**
@@ -151,6 +225,7 @@ class RuleSetEvaluator {
         val name = wb.createName()
         name.nameName = input.name
         name.refersToFormula = "${sheet.sheetName}!${valueCell.address.formatAsString()}"
+        logger.debug("Adding formula for ${input.name}: ${input.formula}")
         valueCell.cellFormula = input.formula
     }
 

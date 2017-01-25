@@ -1,0 +1,85 @@
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix daml: <http://www.daml.org/2001/03/daml+oil#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix f: <http://cinchfinancial.com/Facts#> .
+@prefix : <http://cinchfinancial.com/RE#> .
+
+<http://cinchfinancial.com/Facts#>
+      a       owl:Ontology ;
+      owl:versionInfo "My Test Version"^^xsd:string .
+
+f:User a owl:Class .
+
+f:Fact a owl:Class .
+
+f:RuleSet a owl:Class .
+
+f:asOfDate a owl:ObjectProperty ;
+  rdfs:domain f:Fact ;
+  rdfs:range xsd:datetime .
+
+f:DecimalFact a owl:Class ;
+  rdfs:subClassOf f:Fact .
+
+f:BooleanFact a owl:Class ;
+  rdfs:subClassOf f:Fact .
+
+f:StringFact a owl:Class ;
+  rdfs:subClassOf f:Fact .
+
+f:IntegerFact a owl:Class ;
+  rdfs:subClassOf f:Fact .
+
+f:hasDecimalValue a owl:ObjectProperty ;
+  rdfs:domain f:DecimalFact ;
+  rdfs:range xsd:decimal .
+
+f:hasStringValue a owl:ObjectProperty ;
+  rdfs:domain f:StringFact ;
+  rdfs:range xsd:string .
+
+f:hasBooleanValue a owl:ObjectProperty ;
+  rdfs:domain f:BooleanFact ;
+  rdfs:range xsd:boolean .
+
+f:hasIntegerValue a owl:ObjectProperty ;
+  rdfs:domain f:IntegerFact ;
+  rdfs:range xsd:integer .
+
+f:Recommendation a owl:Class .
+
+f:hasExplanation a owl:ObjectProperty ;
+  rdfs:domain f:Recommendation ;
+  rdfs:range xsd:string .
+
+f:hasRank a owl:ObjectProperty ;
+  rdfs:domain f:Recommendation ;
+  rdfs:range xsd:integer .
+
+f:recommends a owl:ObjectProperty ;
+  rdfs:domain f:RuleSet ;
+  rdfs:range f:Recommendation .
+
+f:does-not-recommend a owl:ObjectProperty ;
+  rdfs:domain f:RuleSet ;
+  rdfs:range f:Recommendation .
+
+f:missing-fact a owl:ObjectProperty ;
+  rdfs:domain f:Recommendation ;
+  rdfs:range f:Fact .
+
+:credit_line_utilization a f:DecimalFact .
+:user_profile_employment_length a f:IntegerFact .
+
+:keep_existing_card a f:Recommendation ;
+  f:hasExplanation "increase your payment and you shouldn't be paying interest" ;
+  f:hasRank 0 .
+
+:user a f:User .
+
+:ruleset a f:RuleSet .
+
+:credit_line_utilizations f:hasDecimalValue "0.439"^^xsd:decimal .
+:user_profile_employment_length f:hasIntegerValue "5"^^xsd:integer .
