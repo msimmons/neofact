@@ -1,6 +1,5 @@
 package com.cinchfinancial.neofact.model
 
-import org.neo4j.ogm.annotation.GraphId
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
 
@@ -14,12 +13,6 @@ class Rule(var name: String = "") : BaseNode() {
     override fun uniqueKey(): String {
         return name
     }
-
-/*
-    @GraphId
-    var id : Long? = null
-        private set
-*/
 
     @Relationship(type = "ASSERTS", direction = Relationship.OUTGOING)
     val statements = mutableSetOf<RuleStatement>()

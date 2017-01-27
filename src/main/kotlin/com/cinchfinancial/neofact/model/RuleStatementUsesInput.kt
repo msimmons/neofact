@@ -20,12 +20,6 @@ class RuleStatementUsesInput() : BaseNode() {
         return "${statement.uniqueKey()}:${input.uniqueKey()}"
     }
 
-/*
-    @GraphId
-    var id : Long? = null
-        private set
-*/
-
     @StartNode
     lateinit var statement : RuleStatement
 

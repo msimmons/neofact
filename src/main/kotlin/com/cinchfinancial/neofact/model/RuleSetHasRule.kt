@@ -20,12 +20,6 @@ class RuleSetHasRule() : BaseNode() {
         return "${ruleSet.uniqueKey()}:${rule.uniqueKey()}"
     }
 
-/*
-    @GraphId
-    var id : Long? = null
-        private set
-*/
-
     var sequence : Int = 0
 
     @StartNode
