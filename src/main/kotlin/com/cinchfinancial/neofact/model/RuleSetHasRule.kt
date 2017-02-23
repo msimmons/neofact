@@ -5,13 +5,14 @@ import org.neo4j.ogm.annotation.RelationshipEntity
 import org.neo4j.ogm.annotation.StartNode
 
 /**
- * The RuleSet -> RuleSetHasRule relationship defines the sequence in which the rules should be run for a given RuleSet.
+ * The [RuleSetHasRule] relationship defines the priority rank in which the [Rule]s should be evaluated for a given
+ * [RuleSet].
  */
 @RelationshipEntity(type="HAS_RULE")
 class RuleSetHasRule() : BaseNode() {
 
-    constructor(ruleSet : RuleSet, rule : Rule, sequence: Int) : this() {
-        this.sequence = sequence
+    constructor(ruleSet : RuleSet, rule : Rule, rank: Int) : this() {
+        this.rank = rank
         this.ruleSet = ruleSet
         this.rule = rule
     }
@@ -20,7 +21,7 @@ class RuleSetHasRule() : BaseNode() {
         return "${ruleSet.uniqueKey()}:${rule.uniqueKey()}"
     }
 
-    var sequence : Int = 0
+    var rank: Int = 0
 
     @StartNode
     lateinit var ruleSet : RuleSet

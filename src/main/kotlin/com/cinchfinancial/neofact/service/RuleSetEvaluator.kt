@@ -36,7 +36,7 @@ class RuleSetEvaluator {
      * Evaluate the given model inputs against the given facts
      * and return the calculated values of the model inputs
      */
-    fun evaluate(modelInputs: Collection<ModelInput>, facts : Map<String,Any?>) : Map<String, Any?> {
+    fun evaluate(modelInputs: Collection<ModelInput>, facts: Map<String, Any?>): Map<String, Any?> {
         // Add each fact to the fact sheet
         var row = 0
         facts.forEach { entry ->
@@ -67,7 +67,7 @@ class RuleSetEvaluator {
                 val cell = inputSheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
                 when (cell.cellType) {
                     Cell.CELL_TYPE_FORMULA -> {
-                        when(cell.cachedFormulaResultType) {
+                        when (cell.cachedFormulaResultType) {
                             Cell.CELL_TYPE_ERROR -> result[input.name] = ErrorEval.getText(cell.errorCellValue.toInt())
                             Cell.CELL_TYPE_BOOLEAN -> result[input.name] = cell.booleanCellValue
                             Cell.CELL_TYPE_NUMERIC -> result[input.name] = BigDecimal.valueOf(cell.numericCellValue)
@@ -94,10 +94,8 @@ class RuleSetEvaluator {
         }
         //  Add each input to the fact sheet
         ruleSet.rules.forEach {
-            it.rule.statements.forEach {
-                it.inputs.forEach {
-                    addToSheet(factSheet, ++row, it)
-                }
+            it.rule.inputs.forEach {
+                addToSheet(factSheet, ++row, it)
             }
         }
         // Add the rule statements to the rule sheet
@@ -110,26 +108,23 @@ class RuleSetEvaluator {
 
         // Create the list of results
         val results: List<Result> = ruleSet.rules.map { rule ->
-            val missingInputs = rule.rule.statements.map {
-                it.inputs.filter { input ->
-                    val name = wb.getName(input.name)
-                    if (name == null) true
-                    else {
-                        val reference = AreaReference(name.refersToFormula, SpreadsheetVersion.EXCEL2007)
-                        val cell = factSheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
-                        when (cell.cellType) {
-                            Cell.CELL_TYPE_ERROR -> true
-                            else -> false
-                        }
+            val missingInputs = rule.rule.inputs.filter { input ->
+                val name = wb.getName(input.name)
+                if (name == null) true
+                else {
+                    val reference = AreaReference(name.refersToFormula, SpreadsheetVersion.EXCEL2007)
+                    val cell = factSheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
+                    when (cell.cellType) {
+                        Cell.CELL_TYPE_ERROR -> true
+                        else -> false
                     }
-                }.map(ModelInput::name)
-            }.flatten()
+                }
+            }.map(ModelInput::name)
             val name = wb.getName(rule.rule.name)
             val reference = AreaReference(name.refersToFormula, SpreadsheetVersion.EXCEL2007)
             val cell = ruleSheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
             Result(rule, cell.booleanCellValue, missingInputs)
         }
-        //wb.write(File("${ruleSet.name}.xlsx").outputStream())
         return results
     }
 
@@ -163,7 +158,7 @@ class RuleSetEvaluator {
         val currentRow = sheet.createRow(row)
         val nameCell = currentRow.createCell(0)
         nameCell.setCellValue(key)
-        when ( value ) {
+        when (value) {
             is Collection<Any?> -> addCollectionToSheet(sheet, currentRow, key, value)
             else -> addScalarToSheet(sheet, currentRow, key, value)
         }
@@ -202,7 +197,7 @@ class RuleSetEvaluator {
     private fun addCollectionToSheet(sheet: Sheet, row: Row, key: String, values: Collection<Any?>) {
         val cells = mutableListOf<Cell>()
         values.forEachIndexed { col, value ->
-            val valueCell = row.createCell(col+1)
+            val valueCell = row.createCell(col + 1)
             cells.add(valueCell)
             setCellValue(valueCell, value)
         }
@@ -217,7 +212,7 @@ class RuleSetEvaluator {
      */
     private fun addToSheet(sheet: Sheet, row: Int, input: ModelInput) {
         if (input.formula.isNullOrEmpty()) return
-        if ( wb.getName(input.name) != null ) return
+        if (wb.getName(input.name) != null) return
         val currentRow = sheet.createRow(row)
         val nameCell = currentRow.createCell(0)
         nameCell.setCellValue(input.name)
@@ -243,22 +238,22 @@ class RuleSetEvaluator {
         name.refersToFormula = "${sheet.sheetName}!${valueCell.address.formatAsString()}"
         // Add each eval formula as a column on this row
         val formulaCells = mutableListOf<Cell>()
-        rule.statements.forEach {
-            column++
-            val formulaCell = currentRow.createCell(column)
-            try {
-                formulaCell.cellFormula = it.formula
-            }
-            catch (e :Exception ) {
-                formulaCell.setCellErrorValue(ErrorEval.REF_INVALID.errorCode.toByte())
-            }
-            formulaCells += formulaCell
+        column++
+        val formulaCell = currentRow.createCell(column)
+        try {
+            formulaCell.cellFormula = rule.formula
+        } catch (e: Exception) {
+            formulaCell.setCellErrorValue(ErrorEval.REF_INVALID.errorCode.toByte())
         }
-        valueCell.cellFormula = formulaCells.joinToString(",", "and(", ")") { it.address.formatAsString() }
+        formulaCells += formulaCell
+        valueCell.cellFormula = formulaCells.joinToString(",", "and(", ")")
+        {
+            it.address.formatAsString()
+        }
     }
-
     /**
      * The result of a rule set evaluation is a ruleSetHasRule, whether it passed or not and any missing inputs
      */
     class Result(val rule: RuleSetHasRule, val passed: Boolean, val missingInputs: List<String>)
 }
+

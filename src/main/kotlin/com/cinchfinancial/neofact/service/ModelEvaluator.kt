@@ -30,12 +30,19 @@ class ModelEvaluator(val factNames: Set<String>, val modelInputs: Collection<Mod
     private val ruleSheet = wb.createSheet("Rules")
     private val evaluator = wb.creationHelper.createFormulaEvaluator()
 
+    var setupTime = 0L
+    var evaluationCount = 0
+    var evaluationTime = 0L
+    var collectionTime = 0L
+
     init {
-        var row = 0
-        factNames.forEach { addNameToSheet(factSheet, row++, it) }
-        row = 0
-        modelInputs.forEach { addNameToSheet(inputSheet, row++, it.name) }
-        modelInputs.forEach { addFormulaToSheet(inputSheet, it.name, it.formula) }
+        setupTime = measureTimeMillis {
+            var row = 0
+            factNames.forEach { addNameToSheet(factSheet, row++, it) }
+            row = 0
+            modelInputs.forEach { addNameToSheet(inputSheet, row++, it.name) }
+            modelInputs.forEach { addFormulaToSheet(inputSheet, it.name, it.formula) }
+        }
     }
 
     /**
@@ -49,27 +56,29 @@ class ModelEvaluator(val factNames: Set<String>, val modelInputs: Collection<Mod
         }
 
         // Evaluate all inputs
-        val elapsed = measureTimeMillis {
+        evaluationTime += measureTimeMillis {
+            evaluationCount++
             evaluator.evaluateAll()
         }
-        logger.debug("Evaulation time: $elapsed ms")
 
         // Collect values of all inputs
         val result = mutableMapOf<String, Any?>()
-        modelInputs.forEach { input ->
-            val name = wb.getName(input.name)
-            if (name == null) null
-            else {
-                val reference = AreaReference(name.refersToFormula, SpreadsheetVersion.EXCEL2007)
-                val cell = inputSheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
-                when (cell.cellType) {
-                    Cell.CELL_TYPE_FORMULA -> {
-                        when(cell.cachedFormulaResultType) {
-                            Cell.CELL_TYPE_ERROR -> result[input.name] = ErrorEval.getText(cell.errorCellValue.toInt())
-                            Cell.CELL_TYPE_BOOLEAN -> result[input.name] = cell.booleanCellValue
-                            Cell.CELL_TYPE_NUMERIC -> result[input.name] = BigDecimal.valueOf(cell.numericCellValue)
-                            Cell.CELL_TYPE_STRING -> result[input.name] = cell.stringCellValue
-                            else -> result[input.name] = null
+        collectionTime += measureTimeMillis {
+            modelInputs.forEach { input ->
+                val name = wb.getName(input.name)
+                if (name == null) null
+                else {
+                    val reference = AreaReference(name.refersToFormula, SpreadsheetVersion.EXCEL2007)
+                    val cell = inputSheet.getRow(reference.allReferencedCells[0].row).getCell(reference.allReferencedCells[0].col.toInt())
+                    when (cell.cellType) {
+                        Cell.CELL_TYPE_FORMULA -> {
+                            when (cell.cachedFormulaResultType) {
+                                Cell.CELL_TYPE_ERROR -> result[input.name] = ErrorEval.getText(cell.errorCellValue.toInt())
+                                Cell.CELL_TYPE_BOOLEAN -> result[input.name] = cell.booleanCellValue
+                                Cell.CELL_TYPE_NUMERIC -> result[input.name] = BigDecimal.valueOf(cell.numericCellValue)
+                                Cell.CELL_TYPE_STRING -> result[input.name] = cell.stringCellValue
+                                else -> result[input.name] = null
+                            }
                         }
                     }
                 }

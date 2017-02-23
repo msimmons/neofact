@@ -1,10 +1,9 @@
 package com.cinchfinancial.neofact.repository
 
 import io.kotlintest.specs.BehaviorSpec
-import org.apache.poi.hssf.util.AreaReference
-import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
+import kotlin.system.measureTimeMillis
 
 /**
  * Created by mark on 8/22/16.
@@ -13,12 +12,13 @@ class SheetSpec : BehaviorSpec() {
     init {
 
         Given("A ruleset worksheet") {
-            val wb = XSSFWorkbook(File("/Users/mark/Downloads/fact_check.xlsx").inputStream())
+            val wb = XSSFWorkbook(File("/Users/mark/Downloads/AllocationModel.xlsx").inputStream())
             val evaluator = wb.getCreationHelper().createFormulaEvaluator()
             val facts = mapOf<String, Any>("fact1" to 0.00, "fact2" to 0.00, "fact3" to 150.00, "state" to "MA")
             val inputs = setOf<String>("input1", "input2", "rate", "input3", "input4", "get_a_new_card")
 
             When("We load the given facts and evaulate all the formulas") {
+/*
                 facts.forEach {
                     val fact = wb.getName(it.key)
                     val aref = AreaReference(fact.getRefersToFormula())
@@ -31,8 +31,31 @@ class SheetSpec : BehaviorSpec() {
                         Cell.CELL_TYPE_NUMERIC -> cell.setCellValue(it.value as Double)
                     }
                 }
-                evaluator.evaluateAll()
+*/
+                var elapsed = measureTimeMillis {
+                    evaluator.evaluateAll()
+                }
+                //println("Load time: $load")
+                println("Evaluation time: $elapsed")
+                val sheet = wb.getSheet("Inputs")
+                var row = sheet.getRow(1)
+                val bcell = row.getCell(1)
+                bcell.setCellValue(false)
+                row = sheet.getRow(2)
+                val dcell = row.getCell(1)
+                dcell.setCellValue(5000.00)
+                elapsed = measureTimeMillis {
+                    evaluator.evaluateAll()
+                }
+                println("Evaluation time: $elapsed")
 
+                bcell.setCellValue(true)
+                dcell.setCellValue(10000.00)
+                elapsed = measureTimeMillis {
+                    evaluator.evaluateAll()
+                }
+                println("Evaluation time: $elapsed")
+/*
                 inputs.forEach {
                     Then("We get the correct inputs") {
                         val input = wb.getName(it)
@@ -51,6 +74,7 @@ class SheetSpec : BehaviorSpec() {
                         }
                     }
                 }
+*/
             }
         }
     }

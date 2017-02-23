@@ -26,10 +26,7 @@ class RuleSetEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
     lateinit var factRepository: FactRepository
 
     @Autowired
-    lateinit var ruleStatementRepository: RuleStatementRepository
-
-    @Autowired
-    lateinit var strategyRepository: StrategyRepository
+    lateinit var outcomeRepository: OutcomeRepository
 
     val keywords = setOf("and","if","sum","max","min","or")
 
@@ -39,8 +36,7 @@ class RuleSetEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         ruleRepository.deleteAll()
         modelInputRepository.deleteAll()
         factRepository.deleteAll()
-        ruleStatementRepository.deleteAll()
-        strategyRepository.deleteAll()
+        outcomeRepository.deleteAll()
         // Create some model inputs
         val inputs = createModelInputs()
         val evaluator = RuleSetEvaluator()
@@ -149,17 +145,14 @@ class RuleSetEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
     }
 
     private fun createRuleSet(inputs: Map<String,ModelInput>) : RuleSet {
-        val strategy = Strategy("strategy1")
-        strategyRepository.save(strategy, 2)
+        val strategy = Outcome("strategy1")
+        outcomeRepository.save(strategy, 2)
         val rule = Rule("rule1")
-        rule.strategies += RuleSuggestsStrategy(rule, strategy, "because")
-        val statement = RuleStatement("")
-        statement.inputs.add(inputs[""] ?: throw IllegalStateException("No such input"))
-        rule.statements += RuleStatement("")
+        rule.outcomes + RuleAssertsOutcome(rule, strategy, arrayOf("because"))
 
         val ruleSet = RuleSet("test")
         ruleSetRepository.save(ruleSet, 2)
-        ruleSet.rules += RuleSetHasRule(ruleSet, Rule("rule1"), 0)
+        ruleSet.rules += RuleSetHasRule(ruleSet, rule, 0)
         return ruleSet
     }
 }

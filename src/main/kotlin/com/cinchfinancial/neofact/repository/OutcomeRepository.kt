@@ -1,6 +1,6 @@
 package com.cinchfinancial.neofact.repository
 
-import com.cinchfinancial.neofact.model.RuleStatement
+import com.cinchfinancial.neofact.model.Outcome
 import org.springframework.data.neo4j.repository.GraphRepository
 import org.springframework.stereotype.Repository
 
@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository
  * Created by mark on 7/5/16.
  */
 @Repository
-interface RuleStatementRepository : GraphRepository<RuleStatement> {
+interface OutcomeRepository : GraphRepository<Outcome> {
 }

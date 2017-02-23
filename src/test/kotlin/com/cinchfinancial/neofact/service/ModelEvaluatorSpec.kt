@@ -3,11 +3,11 @@ package com.cinchfinancial.neofact.service
 import com.cinchfinancial.neofact.NeoConfig
 import com.cinchfinancial.neofact.model.*
 import com.cinchfinancial.neofact.repository.*
+import org.apache.poi.ss.formula.WorkbookEvaluator
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.ClassPathResource
 import java.io.InputStreamReader
 import java.math.BigDecimal
-import kotlin.system.measureTimeMillis
 
 /**
  * Created by mark on 1/12/17.
@@ -26,10 +26,7 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
     lateinit var factRepository: FactRepository
 
     @Autowired
-    lateinit var ruleStatementRepository: RuleStatementRepository
-
-    @Autowired
-    lateinit var strategyRepository: StrategyRepository
+    lateinit var outcomeRepository: OutcomeRepository
 
     val keywords = setOf("and","if","sum","max","min","or")
 
@@ -39,8 +36,7 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         ruleRepository.deleteAll()
         modelInputRepository.deleteAll()
         factRepository.deleteAll()
-        ruleStatementRepository.deleteAll()
-        strategyRepository.deleteAll()
+        outcomeRepository.deleteAll()
         // Create some model inputs
         val inputs = createModelInputs()
         val facts = mutableMapOf<String,Any?>()
@@ -96,24 +92,29 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         facts["checking.mx.balance_beginning_sum"] = 1000
         val evaluator = ModelEvaluator(facts.keys, inputs.values)
         var inputValues : Map<String,Any?> = mapOf()
-        var elapsed = measureTimeMillis {
-            inputValues = evaluator.evaluateInputs(facts)
-        }
+        inputValues = evaluator.evaluateInputs(facts)
         inputValues.forEach { s, any -> println("$s: $any") }
-        println("Elapsed: $elapsed ms")
+        println("Average Evaluation time: ${evaluator.evaluationTime/evaluator.evaluationCount}")
+        println("Average Collection time: ${evaluator.collectionTime/evaluator.evaluationCount}")
 
         // Do it again with some different fact values, especially the collection
         facts["credit_card.accounts.transunion.balance_ending_amount"] = listOf(BigDecimal.valueOf(100.0), BigDecimal.valueOf(400.21), BigDecimal.valueOf(32.40), BigDecimal.valueOf(33.50))
         facts["credit_card.mx.credits_30_day_average_sum"] = 1000
-        elapsed = measureTimeMillis {
-            inputValues = evaluator.evaluateInputs(facts)
-        }
+
+        inputValues = evaluator.evaluateInputs(facts)
+
+        // Do it again with some different fact values, especially the collection
+        facts["credit_card.accounts.transunion.balance_ending_amount"] = listOf(BigDecimal.valueOf(10.0), BigDecimal.valueOf(40.21), BigDecimal.valueOf(332.40), BigDecimal.valueOf(330.50))
+        facts["credit_card.mx.credits_30_day_average_sum"] = 4
+
+        inputValues = evaluator.evaluateInputs(facts)
+        inputValues = evaluator.evaluateInputs(facts)
+
         inputValues.forEach { s, any -> println("$s: $any") }
-        println("Elapsed: $elapsed ms")
 
-        // Create a ruleset that references the model inputs
-
-        // Evaluate the ruleset against some facts
+        println("Setup time: ${evaluator.setupTime}")
+        println("Average Evaluation time: ${evaluator.evaluationTime/evaluator.evaluationCount}")
+        println("Average Collection time: ${evaluator.collectionTime/evaluator.evaluationCount}")
     }
 
     private fun createModelInputs() : Map<String, ModelInput> {
@@ -144,7 +145,7 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         modelInput.type = type
         modelInputRepository.save(modelInput, 3)
         formula.split(" ","/","<",">","+","-","*","(",")",",","=").forEach {
-            if ( it.matches(Regex("([a-zA-Z]+).*")) && !keywords.contains(it) ) modelInput.facts.add(createFact(it))
+            if ( it.matches(Regex("([a-zA-Z]+).*")) && !WorkbookEvaluator.getSupportedFunctionNames().contains(it) ) modelInput.facts.add(createFact(it))
         }
         modelInputRepository.save(modelInput, 3)
         return modelInput
@@ -158,13 +159,10 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
     }
 
     private fun createRuleSet(inputs: Map<String,ModelInput>) : RuleSet {
-        val strategy = Strategy("strategy1")
-        strategyRepository.save(strategy, 2)
+        val strategy = Outcome("strategy1")
+        outcomeRepository.save(strategy, 2)
         val rule = Rule("rule1")
-        rule.strategies += RuleSuggestsStrategy(rule, strategy, "because")
-        val statement = RuleStatement("")
-        statement.inputs.add(inputs[""] ?: throw IllegalStateException("No such input"))
-        rule.statements += RuleStatement("")
+        rule.outcomes + RuleAssertsOutcome(rule, strategy, arrayOf("because"))
 
         val ruleSet = RuleSet("test")
         ruleSetRepository.save(ruleSet, 2)

@@ -5,6 +5,7 @@ import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.verify
 import io.kotlintest.specs.StringSpec
+import org.apache.poi.ss.formula.WorkbookEvaluator
 
 class MockSpec : StringSpec() {
 
