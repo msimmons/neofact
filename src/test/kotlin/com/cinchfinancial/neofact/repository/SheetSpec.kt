@@ -1,8 +1,8 @@
 package com.cinchfinancial.neofact.repository
 
 import io.kotlintest.specs.BehaviorSpec
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.File
+import org.apache.poi.ss.usermodel.FormulaEvaluator
+import org.apache.poi.ss.usermodel.Workbook
 import kotlin.system.measureTimeMillis
 
 /**
@@ -12,8 +12,24 @@ class SheetSpec : BehaviorSpec() {
     init {
 
         Given("A ruleset worksheet") {
-            val wb = XSSFWorkbook(File("/Users/mark/Downloads/AllocationModel.xlsx").inputStream())
-            val evaluator = wb.getCreationHelper().createFormulaEvaluator()
+            Runtime.getRuntime().gc()
+            println("Pre Book Used: ${Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()}")
+
+            val books = mutableListOf<Workbook>()
+/*
+            (0..10).forEach {
+                books.add(XSSFWorkbook(File("/Users/mark/Downloads/life_insurance.xlsx").inputStream()))
+            }
+*/
+/*
+            (0..10).forEach {
+                books.add(XSSFWorkbook(File("/Users/mark/Downloads/allocation_and_moves.xlsx").inputStream()))
+            }
+*/
+            val evaluators = mutableListOf<FormulaEvaluator>()
+            books.forEach {
+                evaluators.add(it.creationHelper.createFormulaEvaluator())
+            }
             val facts = mapOf<String, Any>("fact1" to 0.00, "fact2" to 0.00, "fact3" to 150.00, "state" to "MA")
             val inputs = setOf<String>("input1", "input2", "rate", "input3", "input4", "get_a_new_card")
 
@@ -33,28 +49,25 @@ class SheetSpec : BehaviorSpec() {
                 }
 */
                 var elapsed = measureTimeMillis {
-                    evaluator.evaluateAll()
+                    evaluators.forEach { it.evaluateAll() }
                 }
                 //println("Load time: $load")
                 println("Evaluation time: $elapsed")
-                val sheet = wb.getSheet("Inputs")
-                var row = sheet.getRow(1)
-                val bcell = row.getCell(1)
-                bcell.setCellValue(false)
-                row = sheet.getRow(2)
-                val dcell = row.getCell(1)
-                dcell.setCellValue(5000.00)
+                books.forEach { mod1(it) }
                 elapsed = measureTimeMillis {
-                    evaluator.evaluateAll()
+                    evaluators.forEach { it.evaluateAll() }
+                }
+                println(Runtime.getRuntime().freeMemory())
+                println("Evaluation time: $elapsed")
+                books.forEach { mod2(it) }
+                elapsed = measureTimeMillis {
+                    evaluators.forEach { it.evaluateAll() }
                 }
                 println("Evaluation time: $elapsed")
 
-                bcell.setCellValue(true)
-                dcell.setCellValue(10000.00)
-                elapsed = measureTimeMillis {
-                    evaluator.evaluateAll()
-                }
-                println("Evaluation time: $elapsed")
+                println("Used: ${Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()}")
+                Runtime.getRuntime().gc()
+                println("Used (GC): ${Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()}")
 /*
                 inputs.forEach {
                     Then("We get the correct inputs") {
@@ -77,5 +90,25 @@ class SheetSpec : BehaviorSpec() {
 */
             }
         }
+    }
+
+    fun mod1(wb: Workbook) {
+        val sheet = wb.getSheet("Inputs")
+        var row = sheet.getRow(1)
+        val bcell = row.getCell(1)
+        bcell.setCellValue(false)
+        row = sheet.getRow(2)
+        val dcell = row.getCell(1)
+        dcell.setCellValue(5000.00)
+    }
+
+    fun mod2(wb: Workbook) {
+        val sheet = wb.getSheet("Inputs")
+        var row = sheet.getRow(1)
+        val bcell = row.getCell(1)
+        bcell.setCellValue(true)
+        row = sheet.getRow(2)
+        val dcell = row.getCell(1)
+        dcell.setCellValue(10000.00)
     }
 }

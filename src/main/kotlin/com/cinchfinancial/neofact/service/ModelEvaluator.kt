@@ -11,6 +11,7 @@ import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.util.AreaReference
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.FileOutputStream
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
@@ -20,7 +21,7 @@ import kotlin.system.measureTimeMillis
  * Represent and evaluate models as spreadsheets.  The evaluator is initialized with the known list of
  * fact names and model inputs.  The sheet can then be repeatedly evaluated with different fact values
  */
-class ModelEvaluator(val factNames: Set<String>, val modelInputs: Collection<ModelInput>) {
+class ModelEvaluator(val factNames: Set<String>, val modelInputs: Collection<ModelInput>, val tables: Map<String, Collection<Collection<out Any>>>) {
 
     private val logger: Log = LogFactory.getLog(javaClass)
 
@@ -28,6 +29,8 @@ class ModelEvaluator(val factNames: Set<String>, val modelInputs: Collection<Mod
     private val factSheet = wb.createSheet("Facts")
     private val inputSheet = wb.createSheet("Inputs")
     private val ruleSheet = wb.createSheet("Rules")
+    private val tableSheet = wb.createSheet("Tables")
+    private var tableRowIndex = 0
     private val evaluator = wb.creationHelper.createFormulaEvaluator()
 
     var setupTime = 0L
@@ -37,6 +40,9 @@ class ModelEvaluator(val factNames: Set<String>, val modelInputs: Collection<Mod
 
     init {
         setupTime = measureTimeMillis {
+            tables.forEach { name, table ->
+                addLookupTable(name, table)
+            }
             var row = 0
             factNames.forEach { addNameToSheet(factSheet, row++, it) }
             row = 0
@@ -85,6 +91,35 @@ class ModelEvaluator(val factNames: Set<String>, val modelInputs: Collection<Mod
             }
         }
         return result
+    }
+
+    /**
+     * Add a lookup table to the workbook.  The table is a 2d array representing rows and columns
+     */
+    public fun addLookupTable(name: String, table: Collection<Collection<out Any>>) {
+        val tableCells = mutableListOf<Cell>()
+        table.forEach {
+            val currentRow = tableSheet.createRow(tableRowIndex)
+            var columnIndex = 0
+            it.forEach {
+                val currentCell = currentRow.createCell(columnIndex)
+                tableCells.add(currentCell)
+                setCellValue(currentCell, it)
+                columnIndex++
+            }
+            tableRowIndex++
+        }
+        val namedRange = wb.createName()
+        namedRange.nameName = name
+        namedRange.refersToFormula = "${tableSheet.sheetName}!${tableCells.first().address.formatAsString()}:${tableCells.last().address.formatAsString()}"
+        logger.debug("$name: ${namedRange.refersToFormula}")
+    }
+
+    /**
+     * Save this model to the given excel file
+     */
+    public fun writeToFile(fileName: String) {
+        wb.write(FileOutputStream(fileName))
     }
 
     /**

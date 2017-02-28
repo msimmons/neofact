@@ -90,9 +90,11 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         facts["credit_card.mx.payment_minimum_average_sum"] = 20
         facts["credit_card.mx.balance_ending_balance_beginning_delta"] = 50
         facts["checking.mx.balance_beginning_sum"] = 1000
-        val evaluator = ModelEvaluator(facts.keys, inputs.values)
+        val evaluator = ModelEvaluator(facts.keys, inputs.values, emptyMap())
+        val evaluator2 = ModelEvaluator(facts.keys, inputs.values, emptyMap())
         var inputValues : Map<String,Any?> = mapOf()
         inputValues = evaluator.evaluateInputs(facts)
+        evaluator2.evaluateInputs(facts)
         inputValues.forEach { s, any -> println("$s: $any") }
         println("Average Evaluation time: ${evaluator.evaluationTime/evaluator.evaluationCount}")
         println("Average Collection time: ${evaluator.collectionTime/evaluator.evaluationCount}")
@@ -115,6 +117,7 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         println("Setup time: ${evaluator.setupTime}")
         println("Average Evaluation time: ${evaluator.evaluationTime/evaluator.evaluationCount}")
         println("Average Collection time: ${evaluator.collectionTime/evaluator.evaluationCount}")
+        println("Memory Used: ${Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()}")
     }
 
     private fun createModelInputs() : Map<String, ModelInput> {

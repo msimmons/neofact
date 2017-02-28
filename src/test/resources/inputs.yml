@@ -1,0 +1,895 @@
+tables:
+
+#Name: _allocation_and_moves
+#Description: run the allocation / moves model
+#Formula: Workbook.allocation_and_moves(
+#    user.checking.monthly_net_income,
+#    user.checking.ending_balance,
+#    user.credit_card.revolving.ending_balance,
+#    user.credit_card.all.monthly_payments,
+#    user.monthly_cash_expenses,
+#    user.credit_card.monthly_purchases,
+#    user.credit_card.revolving.apr,
+#    user.age,
+#    user.number_of_children,
+#    user.is_homeowner,
+#    user.credit_score,
+#    user.life_insurance.coverage_amount,
+#    user.savings.ending_balance,
+#    user.unlinked_cash,
+#    user.savings.monthly_credits_count,
+#    user.savings.monthly_credits,
+#    user.credit_card.revolving.balance_trend,
+#    user.life_insurance.monthly_payment,
+#    user.checking.monthly_fees,
+#    user.life_insurance.coverage_gap,
+#    user.life_insurance.premium_need)
+
+inputs:
+  -
+    Name: allocated.savings.lump_amount
+    Type: usd
+    Description: output of allocation model -- lump sum toward savings
+    Formula: _allocation_and_moves.allocated_savings_lump_amount
+  -
+    Name: allocated.savings.flow_amount
+    Type: usd
+    Description: output of allocation model -- monthly flow toward savings
+    Formula: _allocation_and_moves.allocated_savings_flow_amount
+  -
+    Name: allocated.protection.flow_amount
+    Type: usd
+    Description: output of allocation model -- monthly flow toward protection
+    Formula: _allocation_and_moves.allocated_protection_flow_amount
+  -
+    Name: allocated.debt.flow_amount
+    Type: usd
+    Description: output of allocation model -- monthly flow toward debt
+    Formula: _allocation_and_moves.allocated_debt_flow_amount
+  -
+    Name: allocated.debt.lump_amount
+    Type: usd
+    Description: output of allocation model -- lump sum toward debt
+    Formula: _allocation_and_moves.allocated_debt_lump_amount
+  -
+    Name: category.consumption.rank
+    Type: int
+    Description: consumption category rank
+    Formula: _allocation_and_moves.category_consumption_rank
+  -
+    Name: category.savings.rank
+    Type: int
+    Description: savings category rank
+    Formula: _allocation_and_moves.category_savings_rank
+  -
+    Name: category.debt.rank
+    Type: int
+    Description: debt category rank
+    Formula: _allocation_and_moves.category_debt_rank
+  -
+    Name: category.protection.rank
+    Type: int
+    Description: protection category rank
+    Formula: _allocation_and_moves.category_protection_rank
+  -
+    Name: category.consumption.bucket
+    Type: string
+    Description: consumption priority bucket (r, o, or g)
+    Formula: _allocation_and_moves.category_consumption_bucket
+  -
+    Name: category.savings.bucket
+    Type: string
+    Description: savings priority bucket (r, o, or g)
+    Formula: _allocation_and_moves.category_savings_bucket
+  -
+    Name: category.debt.bucket
+    Type: string
+    Description: debt priority bucket (r, o, or g)
+    Formula: _allocation_and_moves.category_debt_bucket
+  -
+    Name: category.protection.bucket
+    Type: string
+    Description: savings protection bucket (r, o, or g)
+    Formula: _allocation_and_moves.category_protection_bucket
+  -
+    Name: category.top_ranked_name
+    Type: string
+    Description:
+    Formula: if(category.consumption.rank = 1, "consumption",
+        if(category.savings.rank = 1, "savings",
+          if(category.debt.rank = 1, "debt",
+            if(category.protection.rank = 1, "protection", "unknown"))))
+  -
+    Name: user.checking.ending_balance
+    Type: usd
+    Description: sum of all ending checking account balances
+    Formula: sum(checking.accounts[].mx.balance_ending_amount)
+  -
+    Name: user.checking.beginning_balance
+    Type: usd
+    Description: sum of all beginning checking account balances
+    Formula: sum(checking.accounts[].mx.balance_beginning_asset_amount)
+  -
+    Name: user.checking.monthly_spend
+    Type: usd
+    Description: sum of all average monthly debits from checking accounts
+    Formula: sum(checking.accounts[].mx.debits_30_day_average)
+  -
+    Name: user.checking.monthly_net_income
+    Type: usd
+    Description: sum of average monthly income across checking accounts
+    Formula: sum(checking.accounts[].mx.credits_income_30_day_average)
+  -
+    Name: user.checking.monthly_consumption_flow
+    Type: usd
+    Description: average monthly credits less average monthly debits across checking accounts
+    Formula: sum(checking.accounts[].mx.flow_30_day_average)
+  -
+    Name: user.checking.max_history
+    Type: months
+    Description: longest reporting period of any checking account
+    Formula: max(checking.accounts[].mx.reporting_period_months)
+  -
+    Name: user.checking.monthly_fees
+    Type: usd
+    Description: average monthly fees across the checking accounts
+    Formula: sum(checking.accounts[].mx.debits_fees_30_day_average)
+  -
+    Name: user.checking.balance_change
+    Type: usd
+    Description: total difference between beginning and ending checking account balance sums
+    Formula: user.checking.beginning_balance - user.checking.ending_balance
+  -
+    Name: user.checking.balance_trend
+    Type: usd
+    Description: average monthly balance change across checking accounts
+    Formula: user.checking.balance_change / user.checking.max_history
+  -
+    Name: user.checking.balance_trend_bucket
+    Type: string
+    Description: string translation of balance trend
+    Formula: if( user.checking.balance_trend < -500, "decreasing_rapidly",
+            if( user.checking.balance_trend < -10, "decreasing",
+             if( user.checking.balance_trend > 500, "increasing_rapidly",
+              if( user.checking.balance_trend > 10, "increasing", "flat"))))
+  -
+    Name: user.checking.monthly_credit_transfers
+    Type: usd
+    Description: average monthly CREDIT transfers across checking accounts
+    Formula: sum(checking.accounts[].mx.credits_transfers_30_day_average)
+  -
+    Name: user.checking.max.is_atm_reimbursed
+    Type: boolean
+    Formula: _checking_account_with_most_fees.credits_atm_fee_reimbursements_sum > 0
+  -
+    Name: _checking_accounts_with_fees
+    Formula: sort(filter("debits_fees_sum", checking.accounts[].mx, "gt", 0), "debits_fees_sum", "DESC")
+  -
+    Name: _checking_account_with_most_fees
+    Formula: _checking_accounts_with_fees[0]
+  -
+    Name: user.checking.max.monthly_atm_fees
+    Type: usd
+    Formula: _checking_account_with_most_fees.debits_fees_atm_30_day_average
+  -
+    Name: user.checking.max.total_atm_fees
+    Type: usd
+    Formula: sum(checking.accounts[].mx.debits_fees_atm_sum)
+  -
+    Name: user.checking.max.total_nsf_fees
+    Type: usd
+    Formula: sum(checking.accounts[].mx.debits_fees_nsf_sum)
+  -
+    Name: user.checking.max.total_service_fees
+    Type: usd
+    Formula: sum(checking.accounts[].mx.debits_fees_service_sum)
+  -
+    Name: user.checking.max.total_overdraft_fees
+    Type: usd
+    Formula: sum(checking.accounts[].mx.debits_fees_overdraft_sum)
+  -
+    Name: user.checking.max.total_fees
+    Type: usd
+    Formula: sum(checking.accounts[].mx.debits_fees_sum)
+  -
+    Name: user.checking.max.monthly_fees
+    Type: usd
+    Formula: sum(checking.accounts[].mx.debits_fees_30_day_average)
+  # behavior
+  -
+    Name: user.credit_card.likely_revolver
+    Type: boolean
+    Description: has one or more revolving credit cards
+    Formula: user.credit_card.revolving.count > 0
+  -
+    Name: user.credit_card.likely_transactor
+    Type: boolean
+    Description: has no revolving credit cards
+    Formula:  user.credit_card.revolving.count = 0
+  -
+    Name: user.credit_card.likely_zero_percent_revolver
+    Type: boolean
+    Description: has one or more revolving cards without interest charges
+    Formula: user.credit_card.revolving.zero_percent_count > 0
+  -
+    Name: user.credit_card.sloppy_behavior
+    Type: boolean
+    Description: has late fees or has failed to meet minimum payment
+    Formula: user.credit_card.has_late_fees or user.credit_card.has_not_made_minimum_payments
+  # all cards
+  -
+    Name: user.credit_card.all.credit_limit
+    Type: usd
+    Description: sum of all credit card limits (from mx)
+    Formula: sum(credit_card.accounts[].mx.credit_limit_amount)
+  -
+    Name: user.credit_card.all.ending_balance
+    Type: usd
+    Description: sum of all credit card balances
+    Formula: sum(credit_card.accounts[].mx.balance_ending_amount)
+  -
+    Name: user.credit_card.all.monthly_payments
+    Type: usd
+    Description: sum of payments to all credit cards
+    Formula: sum(credit_card.accounts[].mx.credits_payments_30_day_average)
+  -
+    Name: user.credit_card.all.minimum_payments
+    Type: usd
+    Description: sum of minimum payments on all credit cards
+    Formula: sum(credit_card.accounts[].mx.payment_minimum_estimated_amount)
+  -
+    Name: user.credit_card.all.monthly_credits
+    Type: usd
+    Description: the sum of the average of monthly credits across all credit cards
+    Formula: sum(credit_card.accounts[].mx.credits_30_day_average)
+  -
+    Name: user.credit_card.all.monthly_debits
+    Type: usd
+    Description: the sum of the average of monthly debits across all credit cards
+    Formula: sum(credit_card.accounts[].mx.debits_30_day_average)
+  -
+    Name: user.credit_card.monthly_consumption_flow
+    Type: usd
+    Description: average monthly credits less average monthly debits across all credit cards
+    Formula: sum(credit_card.accounts[].mx.flow_30_day_average)
+  -
+    Name: user.credit_card.all.monthly_fees
+    Type: usd
+    Description: average monthly fees across all credit cards
+    Formula: sum(credit_card.accounts[].mx.debits_fees_30_day_average) + sum(credit_card.accounts[].mx.debits_finance_charges_30_day_average)
+  -
+    Name: user.credit_card.monthly_purchases
+    Type: usd
+    Description: thirty day average purchases all credit card accounts (debits less fees)
+    Formula: user.credit_card.all.monthly_debits - user.credit_card.all.monthly_fees
+  -
+    Name: user.credit_card.all.utilization
+    Type: percent
+    Description: credit limit utilization across all credit cards
+    Formula: user.credit_card.all.ending_balance / user.credit_card.all.credit_limit
+  -
+    Name: user.credit_card.monthly_debt_service
+    Type: usd
+    Description: average monthly payments less average monthly purchases
+    Formula: user.credit_card.all.monthly_payments - user.credit_card.monthly_purchases
+  -
+    Name: user.credit_card.has_late_fees
+    Type: boolean
+    Description: has incurred more than $0 in late fees across credit cards
+    Formula: sum(credit_card.accounts[].mx.debits_fees_late_sum) > 0
+  -
+    Name: user.credit_card.has_not_made_minimum_payments
+    Type: boolean
+    Description: actual payments made are less than minimum
+    Formula: user.credit_card.all.monthly_payments < user.credit_card.all.minimum_payments
+  -
+    Name: _cards_for_consolidation
+    Description: The list of cards that would be valid for consolidation
+    Formula: sort(filter("credit_limit", _user.credit_card.transacting.accounts, "gt", user.credit_card.monthly_purchases * 1.2), "credit_limit", "DESC")
+  -
+    Name: user.credit_card.has_card_for_consolidation
+    Type: boolean
+    Description: has a card for consolidation
+    Formula: count(_cards_for_consolidation) > 0
+  -
+    Name: _card_for_consolidation
+    Description: The card to use for consolidation
+    Formula: _cards_for_consolidation[0]
+  -
+    Name: user.credit_card.card_for_consolidation.institution_name
+    Type: string
+    Description: The name of the card for consolidation
+    Formula: _card_for_consolidation.institution_name
+  -
+    Name: user.credit_card.card_for_consolidation.number
+    Type: string
+    Description: The name of the card for consolidation
+    Formula: _card_for_consolidation.number
+  -
+    Name: _user.credit_card.transacting.accounts
+    Description: list of transactions credit card accounts (from mx)
+    Formula: filter("behavior_revolver_condition", credit_card.accounts[].mx, "eq", false)
+  -
+    Name: user.credit_card.spends_on_more_than_one_card
+    Type: boolean
+    Description: spends on more than one card
+    Formula: count(filter("debits_30_day_average", credit_card.accounts[].mx, "gt", 1))
+  # revolving cards
+  -
+    Name: _user.credit_card.revolving_accounts
+    Description: list of revolving credit card accounts (from mx)
+    Formula: filter("behavior_revolver_condition", credit_card.accounts[].mx, "eq", true)
+  -
+    Name: user.credit_card.revolving.ending_balance
+    Type: usd
+    Description: sum of revolving credit card balances
+    Formula: sum(_user.credit_card.revolving_accounts[].balance_ending_amount)
+  -
+    Name: user.credit_card.revolving.credit_limit
+    Type: usd
+    Description: sum of revolving credit card limits
+    Formula: sum(_user.credit_card.revolving_accounts[].credit_limit_amount)
+  -
+    Name: user.credit_card.revolving.monthly_payments
+    Type: usd
+    Description: sum of payments to revolving credit cards
+    Formula: sum(_user.credit_card.revolving_accounts[].credits_payments_30_day_average)
+  -
+    Name: user.credit_card.revolving.minimum_payments
+    Type: usd
+    Description: sum of minimum payments on revolving credit cards
+    Formula: sum(_user.credit_card.revolving_accounts[].payment_minimum_estimated_amount)
+  -
+    Name: user.credit_card.revolving.max_history
+    Type: month
+    Description: maximum reporting period history on revolving credit cards (in months)
+    Formula: max(_user.credit_card.revolving_accounts[].reporting_period_months)
+  
+  -
+    Name: user.credit_card.revolving.beginning_balance
+    Type: usd
+    Description: sum of revolving credit card beginning balances
+    Formula: sum(_user.credit_card.revolving_accounts[].balance_beginning_liability_amount)
+  
+  -
+    Name: user.credit_card.revolving.balance_change
+    Type: usd
+    Description: total revolving credit card balance change across all cards
+    Formula: user.credit_card.revolving.ending_balance - user.credit_card.revolving.beginning_balance
+  
+  -
+    Name: user.credit_card.revolving.balance_trend
+    Type: usd
+    Description: monthly balance change across all credit cards
+    Formula: user.credit_card.revolving.balance_change / user.credit_card.revolving.max_history
+  
+  -
+    Name: user.credit_card.revolving.count
+    Type: int
+    Description: number of revolving credit cards
+    Formula: count(_user.credit_card.revolving_accounts)
+  
+  -
+    Name: user.credit_card.revolving.zero_percent_count
+    Type: int
+    Description: number of revolving cards without interest charges
+    Formula: count(filter("debits_finance_charges_sum", _user.credit_card.revolving_accounts, "eq", 0))
+  
+  -
+    Name: user.credit_card.revolving.apr
+    Type: percent
+    Description: max of the average reported apr or average estimated apr
+    Formula: max(user.credit_card.revolving.reported_apr, user.credit_card.revolving.effective_apr)
+  
+  -
+    Name: user.credit_card.revolving.reported_apr
+    Type: percent
+    Description: average of revolving credit cards' reported annual interest rate
+    Formula: mean(_user.credit_card.revolving_accounts[].interest_rate_normalized_annual_amount)
+  
+  -
+    Name: user.credit_card.revolving.effective_apr
+    Type: percent
+    Description: average of revolving credit cards' estimated effective annual interest rate
+    Formula: mean(_user.credit_card.revolving_accounts[].interest_rate_estimated_annual_amount)
+  
+  -
+    Name: user.credit_card.revolving.estimated_interest_cost
+    Type: usd
+    Description: estimated lifetime cost of revolving credit card balances
+    Formula: user.credit_card.revolving.ending_balance * (user.credit_card.revolving.apr / 12)
+  
+  -
+    Name: user.credit_card.revolving.utilization
+    Type: percent
+    Description: credit limit utilization across revolving credit cards
+    Formula: if( user.credit_card.revolving.credit_limit = 0,
+               0,
+               user.credit_card.revolving.ending_balance / user.credit_card.revolving.credit_limit)
+  
+  -
+    Name: user.credit_card.balance_trend_bucket
+    Type: string
+    Description: string translation of balance trend
+    Formula: if( user.credit_card.revolving.balance_trend < -500, "decreasing_rapidly",
+            if( user.credit_card.revolving.balance_trend < -10, "decreasing",
+             if( user.credit_card.revolving.balance_trend > 500, "increasing_rapidly", 
+              if( user.credit_card.revolving.balance_trend > 10, "increasing", "flat"))))
+  
+  
+  # predictions
+  
+  -
+    Name: user.credit_card.likely_preapproved
+    Type: boolean
+    Description: likely to be pre-approved for a new credit card
+    Formula: ML.cc_approval_model(user.credit_score, user.credit_card.revolving.ending_balance) > 0
+  
+  -
+    Name: user.credit_card.predicted_apr
+    Type: percent
+    Description: predicted apr for new credit card application
+    Formula: ML.cc_apr_model(user.credit_score, user.credit_card.revolving.ending_balance)
+  -
+    Name: user.life_insurance.has_coverage
+    Type: boolean
+    Description: user reports having life insurance
+    Formula: user_profile.user.has_life_insurance
+  
+  -
+    Name: user.life_insurance.coverage_amount
+    Type: usd
+    Description: how much life insurance coverage
+    Formula: user_profile.user.life_insurance_amount
+  
+  -
+    Name: user.life_insurance.monthly_payment
+    Type: usd
+    Description: monthly life insurance monthly_payment
+    Formula: 0
+  
+#  -
+#    Name: _life_insurace
+#    Description: life insurance workbook model
+#    Formula: Workbook.life_insurance(
+#      user.age,
+#      user.number_of_children,
+#      user.is_homeowner,
+#      user.is_smoker,
+#      user.checking.monthly_net_income,
+#      user.checking.ending_balance,
+#      user.savings.ending_balance,
+#      user.unlinked_cash,
+#      user.life_insurance.coverage_amount)
+#
+  -
+    Name: user.life_insurance.coverage_gap
+    Type: usd
+    Formula: _life_insurace.coverage_gap
+  
+  -
+    Name: user.life_insurance.premium_need
+    Type: usd
+    Formula: _life_insurace.premium_need
+  -
+    Name: move.spending_challenge.rank
+    Type: int
+    Description: spending challenge move rank
+    Formula: _allocation_and_moves.move_spending_challenge_rank
+  
+  -
+    Name: move.payment_choice.rank
+    Type: int
+    Description: payment choice move rank
+    Formula: _allocation_and_moves.move_payment_choice_rank
+  
+  -
+    Name: move.checking.rank
+    Type: int
+    Description: checking move rank
+    Formula: _allocation_and_moves.move_checking_rank
+  
+  -
+    Name: move.reserves.rank
+    Type: int
+    Description: reserves move rank
+    Formula: _allocation_and_moves.move_reserves_rank
+  
+  -
+    Name: move.debt.rank
+    Type: int
+    Description: debt move rank
+    Formula: _allocation_and_moves.moves_debt_rank
+  
+  -
+    Name: move.life_insurance.rank
+    Type: int
+    Description: life insurance move rank
+    Formula: _allocation_and_moves.move_life_insurance_rank
+  -
+    Name: user.personal_loan.can_afford
+    Type: boolean
+    Description: user can afford payments on a 7 year personal loan
+    Formula: user.personal_loan.expected_7_year_payment < (allocated.debt.flow_amount + user.credit_card.revolving.minimum_payments)
+  
+  -
+    Name: user.personal_loan.expected_7_year_payment
+    Type: usd
+    Description: expected payment for a 7 year personal loan
+    Formula: pmt((user.personal_loan.predicted_5_year_low_apr / 12), 84, (user.credit_card.revolving.ending_balance * -1))
+  
+#  -
+#    Name: user.personal_loan.likely_preapproved
+#    Type: boolean
+#    Description: likely to be pre-approved for a personal loan
+#    Formula: (ML.loan_approval_model1(user.credit_card.revolving.ending_balance,
+#                                      user.credit_score,
+#                                      user.unsecured_debt_obligation_to_income_ratio,
+#                                      user.employed_less_than_a_year) > 0.5)
+#      and (ML.loan_approval_model2(user.credit_card.revolving.ending_balance,
+#                                      36,
+#                                      user.gross_annual_income,
+#                                      user.employed_less_than_a_year,
+#                                      user.public_delinquencies,
+#                                      user.public_derogatory_marks,
+#                                      user.credit_inquiries,
+#                                      user.debt_accounts,
+#                                      user.credit_card.all.utilization,
+#                                      user.public_bankruptcies,
+#                                      user.tax_liens,
+#                                      user.credit_history) > 0)
+#      and (ML.loan_approval_model2(user.credit_card.revolving.ending_balance,
+#                                      60,
+#                                      user.gross_annual_income,
+#                                      user.employed_less_than_a_year,
+#                                      user.public_delinquencies,
+#                                      user.public_derogatory_marks,
+#                                      user.credit_inquiries,
+#                                      user.debt_accounts,
+#                                      user.credit_card.all.utilization,
+#                                      user.public_bankruptcies,
+#                                      user.tax_liens,
+#                                      user.credit_history) > 0)
+  
+#  -
+#    Name: user.personal_loan.predicted_3_year_grade
+#    Type: int
+#    Description: predicted 3 year loan application grade
+#    Formula: ML.loan_apr_model_grade(
+#      user.credit_card.revolving.ending_balance,
+#      36,
+#      user.employed_less_than_a_year,
+#      user.public_delinquencies,
+#      user.unsecured_debt_obligation_to_income_ratio,
+#      user.gross_annual_income,
+#      user.credit_inquiries,
+#      user.debt_accounts,
+#      user.credit_card.revolving.ending_balance,
+#      user.credit_card.revolving.utilization,
+#      user.credit_card.all.ending_balance,
+#      user.public_bankruptcies,
+#      user.tax_liens,
+#      user.credit_score,
+#      user.credit_history)
+  
+#  -
+#    Name: user.personal_loan.predicted_3_year_low_apr
+#    Type: percent
+#    Description: low expected apr for a 3 year personal loan
+#    Formula: ML.loan_apr_model_apr(36, user.personal_loan.predicted_3_year_grade, "LOW")
+  
+#  -
+#    Name: user.personal_loan.predicted_3_year_mid_apr
+#    Type: percent
+#    Description: mid expected apr for a 3 year personal loan
+#    Formula: ML.loan_apr_model_apr(36, user.personal_loan.predicted_3_year_grade, "MID")
+#
+#  -
+#    Name: user.personal_loan.predicted_3_year_max_apr
+#    Type: percent
+#    Description: high expected apr for a 3 year personal loan
+#    Formula: ML.loan_apr_model_apr(36, user.personal_loan.predicted_3_year_grade, "HIGH")
+  
+#  -
+#    Name: user.personal_loan.predicted_5_year_grade
+#    Type: int
+#    Description: predicted 5 year loan application grade
+#    Formula: ML.loan_apr_model_grade(
+#      user.credit_card.revolving.ending_balance,
+#      60,
+#      user.employed_less_than_a_year,
+#      user.public_delinquencies,
+#      user.unsecured_debt_obligation_to_income_ratio,
+#      user.gross_annual_income,
+#      user.credit_inquiries,
+#      user.debt_accounts,
+#      user.credit_card.revolving.ending_balance,
+#      user.credit_card.revolving.utilization,
+#      user.credit_card.all.ending_balance,
+#      user.public_bankruptcies,
+#      user.tax_liens,
+#      user.credit_score,
+#      user.credit_history)
+  
+#  -
+#    Name: user.personal_loan.predicted_5_year_low_apr
+#    Type: percent
+#    Description: low expected apr for a 5 year personal loan
+#    Formula: ML.loan_apr_model_apr(60, user.personal_loan.predicted_5_year_grade, "LOW")
+#
+#  -
+#    Name: user.personal_loan.predicted_5_year_mid_apr
+#    Type: percent
+#    Description: mid expected apr for a 5 year personal loan
+#    Formula: ML.loan_apr_model_apr(60, user.personal_loan.predicted_5_year_grade, "MID")
+#
+#  -
+#    Name: user.personal_loan.predicted_5_year_max_apr
+#    Type: percent
+#    Description: high expected apr for a 5 year personal loan
+#    Formula: ML.loan_apr_model_apr(60, user.personal_loan.predicted_5_year_grade, "HIGH")
+#  -
+    Name: user.savings.ending_balance
+    Type: usd
+    Description: sum of all savings account balances
+    Formula: sum(savings.accounts[].mx.balance_ending_amount)
+  
+  -
+    Name: user.savings.monthly_consumption_flow
+    Type: usd
+    Description: monthly average credits less monthly average debits across all savings accounts
+    Formula: sum(savings.accounts[].mx.flow_30_day_average)
+  
+  -
+    Name: user.savings.count
+    Type: int
+    Description: number of linked savings accounts
+    Formula: count(savings.accounts[])
+  
+  -
+    Name: user.savings.with_transactions
+    Type: int
+    Description: number of linked savings accounts with transactions
+    Formula: filter("transactions_count", savings.accounts[].mx, "gt", 0)
+  
+  -
+    Name: user.savings.monthly_credits
+    Type: usd
+    Description: average monthly deposits into linked savings accounts
+    Formula: sum(savings.accounts[].mx.credits_30_day_average)
+  
+  -
+    Name: user.savings.monthly_credit_transfers
+    Type: usd
+    Description:
+    Formula: sum(savings.accounts[].mx.credits_transfers_30_day_average)
+  
+  -
+    Name: user.savings.balance_trend
+    Type: usd
+    Description: monthly balance change across all savings accounts
+    Formula: user.savings.balance_change / user.savings.max_history
+  
+  -
+    Name: user.savings.balance_change
+    Type: usd
+    Description: total savings balance change across all savings accounts
+    Formula: user.savings.beginning_balance - user.savings.ending_balance
+  
+  -
+    Name: user.savings.max_history
+    Type: month
+    Description: maximum reporting period history on savings accounts (in months)
+    Formula: if(count(user.savings.with_transactions) > 0, max(savings.accounts[].mx.reporting_period_months), 0)
+  
+  -
+    Name: user.savings.beginning_balance
+    Type: usd
+    Description: sum of all beginning savings account balances
+    Formula: sum(savings.accounts[].mx.balance_beginning_asset_amount)
+  
+  -
+    Name: user.savings.credits_count
+    Formula: sum(savings.accounts[].mx.credits_count)
+  
+  -
+    Name: user.savings.monthly_credits_count
+    Type: int
+    Description: average monthly number of credits to savings accounts
+    Formula: if(user.savings.credits_count > 0 and user.savings.max_history > 0, ceil(user.savings.credits_count / user.savings.max_history), 0)
+  -
+    Name: user.monthly_consumption_flow
+    Type: usd
+    Description: average monthly cash flow for all checking, savings, and credit card accounts
+    Formula: user.monthly_cash_flow + user.credit_card.monthly_consumption_flow
+  
+  -
+    Name: user.linked_cash
+    Type: usd
+    Description: total of all checking and savings balances
+    Formula: user.checking.ending_balance + user.savings.ending_balance
+  
+  -
+    Name: user.unlinked_cash
+    Type: usd
+    Description: user-specified "unlinked" cash
+    Formula: user_profile.user.unlinked_cash
+  
+  -
+    Name: user.total_cash
+    Type: usd
+    Description: sum of all checking and savings account balances, plus "unlinked" cash
+    Formula: user.linked_cash + user.unlinked_cash
+  
+  -
+    Name: user.expense_run_rate
+    Type: double
+    Description: difference between monthly income and consumption
+    Formula: user.checking.monthly_net_income - user.monthly_consumption_flow
+  
+  -
+    Name: user.allocatable_lump_cash
+    Type: usd
+    Description: allocatable one-time cash
+    Formula: max(user.expense_run_rate * 1.5, 0)
+  
+  -
+    Name: user.allocatable_cash_flow
+    Type: usd
+    Description: allocatable monthly cash
+    Formula: if((user.credit_card.revolving.ending_balance + user.credit_card.revolving.balance_change) > 0,
+              max(user.free_cash_flow + user.credit_card.all.monthly_payments - user.credit_card.all.minimum_payments - user.credit_card.monthly_purchases, 0),
+              user.free_cash_flow)
+  
+  -
+    Name: user.free_cash_flow
+    Type: usd
+    Description: cash not locked up for expenses or debt obligations
+    Formula: (user.checking.monthly_net_income - user.credit_card.monthly_purchases - user.monthly_cash_expenses) + (user.credit_card.all.monthly_payments + user.credit_card.revolving.balance_trend)
+  
+  -
+    Name: user.monthly_cash_expenses
+    Type: usd
+    Description: average monthly debits across checking and savings accounts (less credit transfers on both account types to offset these)
+    Formula: user_profile.mx.banking_debits_30_day_average - user.checking.monthly_credit_transfers - user.savings.monthly_credit_transfers
+  
+  -
+    Name: user.free_cash_to_income_ratio
+    Type: double
+    Description: ratio of free cash to net income
+    Formula: user.free_cash_flow / user.checking.monthly_net_income
+  
+  -
+    Name: user.monthly_unsecured_debt_obligation
+    Type: usd
+    Description: total minimum monthly unsecured debt payments
+    Formula: user.credit_card.all.monthly_payments
+  
+  -
+    Name: user.unsecured_debt_obligation_to_income_ratio
+    Type: double
+    Description: monthly unsecured debt obligation to net income
+    Formula: user.monthly_unsecured_debt_obligation / user.checking.monthly_net_income
+  
+  -
+    Name: user.money_to_deposit_to_reserves
+    Type: usd
+    Description: money the user should actually deposit into reserves
+    Formula: if((1.5 * user.expense_run_rate) <= user.checking.ending_balance, allocated.savings.lump_amount - user.savings.ending_balance - user.unlinked_cash, 0)
+  
+  -
+    Name: user.number_of_children
+    Type: int
+    Description: number of kids
+    Formula: user_profile.user.number_of_children
+  
+  -
+    Name: user.monthly_cash_flow
+    Type: usd
+    Description: monthly net cash flow
+    Formula: user.checking.monthly_consumption_flow + user.savings.monthly_consumption_flow
+  
+  # TODO this should use real daily values
+  -
+    Name: user.needs_float
+    Type: boolean
+    Description: needs float
+    Formula: sum(checking.accounts[].mx.balance_daily_average) - sum(checking.accounts[].mx.debits_daily_average) - sum(credit_card.accounts[].mx.debits_daily_average) <= 0
+  
+  
+  -
+    Name: user.employed_less_than_a_year
+    Type: boolean
+    Description: employed less than a year
+    Formula: user_profile.user.employment_years < 1
+  
+  -
+    Name: user.public_delinquencies
+    Type: int
+    Description: number public delinquencies on credit report within 2 years
+    Formula: user_profile.transunion.delinquencies_last_2_years_count
+  
+  -
+    Name: user.credit_inquiries
+    Type: int
+    Description: number of credit inquiries within 6 months
+    Formula: user_profile.transunion.credit_inquiries_last_6_months_count
+  
+  -
+    Name: user.gross_annual_income
+    Type: usd
+    Description: user-reported gross annual income
+    Formula: user_profile.user.annual_individual_income
+  
+  -
+    Name: user.gross_monthly_income
+    Type: usd
+    Description: user-reported gross monthly income
+    Formula: user.gross_annual_income / 12
+  
+  -
+    Name: user.debt_accounts
+    Type: int
+    Description: number of debt accounts on credit report
+    Formula: user_profile.transunion.debt_accounts_count
+  
+  -
+    Name: user.public_bankruptcies
+    Type: int
+    Description: number of public bankruptcies on credit report
+    Formula: user_profile.transunion.bankruptcies_public_count
+  
+  -
+    Name: user.tax_liens
+    Type: int
+    Description: number of tax liens on credit report
+    Formula: user_profile.transunion.tax_liens_count
+  
+  -
+    Name: user.credit_history
+    Type: months
+    Description: months of history on on credit report
+    Formula: user_profile.transunion.credit_history_months
+  
+  -
+    Name: user.credit_score
+    Type: int
+    Description: credit score from credit report
+    Formula: user_profile.transunion.fico_score_amount
+  
+  -
+    Name: user.public_derogatory_marks
+    Type: int
+    Description: number of derogatory marks on credit report
+    Formula: user_profile.transunion.derogatory_public_records
+  
+  -
+    Name: user.debt_repayment_months_at_0_percent
+    Type: int
+    Description: number of months to repay debt without interest
+    Formula: user.credit_card.revolving.ending_balance / (allocated.debt.flow_amount + user.credit_card.revolving.minimum_payments)
+  
+  -
+    Name: user.age
+    Type: int
+    Description: age
+    Formula: 30
+  
+  -
+    Name: user.is_homeowner
+    Type: boolean
+    Description: owns their home
+    Formula: user_profile.user.housing_status = "own"
+  
+  -
+    Name: user.is_smoker
+    Type: boolean
+    Description: identifies as a smoker
+    Formula: false
+  # TODO should be user_profile.user.is_smoker
+  
+  -
+    Name: user.state
+    Type: string
+    Description: two-letter state abbreviation
+    Formula: user_profile.transunion.address_state_name

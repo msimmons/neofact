@@ -1,0 +1,245 @@
+tables:
+  Table_InsuranceCost:
+    -
+      - Insurance Cost @ $0.25MM
+      - Smoker
+      - NonSmoker
+    -
+      - 25
+      - 55.71
+      - 27.53
+    -
+      - 30
+      - 60.17
+      - 27.88
+    -
+      - 35
+      - 67.42
+      - 29.98
+    -
+      - 40
+      - 97.95
+      - 36.03
+    -
+      - 45
+      - 156.80
+      - 51.62
+    -
+      - 50
+      - 233.21
+      - 76.58
+    -
+      - 55
+      - 372.47
+      - 121.28
+    -
+      - 60
+      - 555.73
+      - 207.70
+    -
+      - 65
+      - 988.32
+      - 347.67
+  Tables_Life_Coverage_Buckets:
+    -
+      - 0
+      - r
+    -
+      - 0.5
+      - o
+    -
+      - 1
+      - g
+  Table_AgeGroupProtection:
+    -
+      - 25
+      - TRUE
+      - TRUE
+      - 4
+    -
+      - 25
+      - TRUE
+      - FALSE
+      - 4
+    -
+      - 25
+      - FALSE
+      - TRUE
+      - 1
+    -
+      - 25
+      - FALSE
+      - FALSE
+      - 0
+    -
+      - 35
+      - TRUE
+      - TRUE
+      - 5
+    -
+      - 35
+      - TRUE
+      - FALSE
+      - 5
+    -
+      - 35
+      - FALSE
+      - TRUE
+      - 1
+    -
+      - 35
+      - FALSE
+      - FALSE
+      - 0
+    -
+      - 45
+      - TRUE
+      - TRUE
+      - 6
+    -
+      - 45
+      - TRUE
+      - FALSE
+      - 6
+    -
+      - 45
+      - FALSE
+      - TRUE
+      - 1
+    -
+      - 45
+      - FALSE
+      - FALSE
+      - 1
+    -
+      - 55
+      - TRUE
+      - TRUE
+      - 5.5
+    -
+      - 55
+      - TRUE
+      - FALSE
+      - 5.5
+    -
+      - 55
+      - FALSE
+      - TRUE
+      - 2
+    -
+      - 55
+      - FALSE
+      - FALSE
+      - 1
+    -
+      - 65
+      - TRUE
+      - TRUE
+      - 4
+    -
+      - 65
+      - TRUE
+      - FALSE
+      - 4
+    -
+      - 65
+      - FALSE
+      - TRUE
+      - 2
+    -
+      - 65
+      - FALSE
+      - FALSE
+      - 1
+
+inputs:
+  -
+    Name: Age
+    Type: int
+    Estimated: false
+    Description: The users age
+    Formula: user.age
+  -
+    Name: NumDependents
+    Type: int
+    Estimated: false
+    Description: The users dependents
+    Formula: user.number_of_children
+  -
+    Name: ExistingLifeCoverage
+    Type: usd
+    Estimated: false
+    Description: existing coverage
+    Formula: user.life_insurance.coverage_amount
+  -
+    Name: IsHomeOwner
+    Type: boolean
+    Estimated: false
+    Description: is he a home owner
+    Formula: user.is_homeowner
+  -
+    Name: IsSmoker
+    Type: boolean
+    Estimated: false
+    Description: is a smoker
+    Formula: user.is_smoker
+  -
+    Name: MonthlyNetIncome
+    Type: usd
+    Estimated: false
+    Description: income
+    Formula: user.checking.monthly_net_income
+  -
+    Name: CheckingBalance
+    Type: usd
+    Estimated: false
+    Description: what it says
+    Formula: user.checking.ending_balance
+  -
+    Name: SavingsBalance
+    Type: usd
+    Estimated: false
+    Description: what it says
+    Formula: user.savings.ending_balance
+  -
+    Name: ReservesBalance
+    Type: usd
+    Estimated: false
+    Description: what it says
+    Formula: user.unlinked_cash
+  -
+    Name: TotalCash
+    Type: usd
+    Estimated: false
+    Description: what it says
+    Formula: sum(CheckingBalance, SavingsBalance, ReservesBalance)
+  -
+    Name: LifeCoverageMultiple
+    Type: usd
+    Estimated: false
+    Description: what it says
+    Formula: SUMIFS(index(Table_AgeGroupProtection,0,4),index(Table_AgeGroupProtection,0,1),5+CEILING(Age-5,10),index(Table_AgeGroupProtection,0,2),NumDependents>0,index(Table_AgeGroupProtection,0,3),IsHomeOwner)
+  -
+    Name: InsuranceCost25
+    Type: usd
+    Estimated: false
+    Description: what it says
+    Formula: VLOOKUP(CEILING(Age,5),Table_InsuranceCost,IF(IsSmoker,2,3),0)
+  -
+    Name: LifeCoverageGap
+    Type: usd
+    Estimated: false
+    Description: what it says
+    Formula: MAX(0,12*MonthlyNetIncome*LifeCoverageMultiple-TotalCash-ExistingLifeCoverage)
+  -
+    Name: LifeCoverageCost
+    Type: usd
+    Estimated: false
+    Description: what it says
+    Formula: InsuranceCost25*LifeCoverageGap/250000
+  -
+    Name: LifeCoverageGrade
+    Type: string
+    Estimated: false
+    Description: what it says
+    Formula: VLOOKUP(ExistingLifeCoverage/(ExistingLifeCoverage+LifeCoverageGap),Tables_Life_Coverage_Buckets,2,1)

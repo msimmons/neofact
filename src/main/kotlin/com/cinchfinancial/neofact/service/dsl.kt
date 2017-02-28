@@ -77,10 +77,17 @@ class RULESET {
     }
 }
 
+class Facts(val facts: Map<String,Any?>) {
+    val fact1 : String? by facts
+}
+
 fun doit() {
+
+    val facts = Facts(mapOf<String, Any?>())
 
     val mi = inputs {
         define input "foo" formula {BigDecimal.ZERO}
+        define input "bar" formula {facts.fact1 == "helpme"}
     }
 
     ruleset {
