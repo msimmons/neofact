@@ -95,7 +95,7 @@ class RuleSetEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         val elapsed = measureTimeMillis {
             inputValues = evaluator.evaluate(inputs.values, facts)
         }
-        inputValues.forEach { s, any -> println("$s: $any") }
+        inputValues.forEach { entry -> println("${entry.key}: ${entry.value}") }
         println("Elapsed: $elapsed ms")
 
         // Create a ruleset that references the model inputs

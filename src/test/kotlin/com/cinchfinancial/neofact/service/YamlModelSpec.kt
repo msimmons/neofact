@@ -4,6 +4,7 @@ import com.cinchfinancial.neofact.model.ModelInput
 import io.kotlintest.specs.BehaviorSpec
 import org.springframework.core.io.ClassPathResource
 import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.introspector.BeanAccess
 import java.math.BigDecimal
 
 /**
@@ -11,18 +12,18 @@ import java.math.BigDecimal
  */
 class YamlModelSpec : BehaviorSpec() {
 
-    val keywords = setOf("and", "if", "sum", "max", "min", "or")
-
     init {
-        val yaml = Yaml().load(ClassPathResource("life_model.yml").inputStream) as Map<String, out Any>
-        val inputs = yaml["inputs"] as Collection<Map<String, out Any>>
-        val tables =  (yaml["tables"] ?: mapOf<String, List<List<out Any>>>()) as Map<String, List<List<out Any>>>
+        val yamlParser = Yaml()
+        yamlParser.setBeanAccess(BeanAccess.FIELD)
+        val yaml = yamlParser.loadAs(ClassPathResource("life_model.yml").inputStream, YamlDataModel::class.java)
+        val inputs = yaml.inputs
+        val tables =  yaml.tables
 
         // Create some model inputs
         val facts = mutableMapOf<String, Any?>()
         val modelInputs = createModelInputs(inputs)
 
-        facts["user.age"] = 31
+        facts["user.age"] = 25
         facts["user.number_of_children"] = 1
         facts["user.is_homeowner"] = true
         facts["user.is_smoker"] = false
@@ -30,14 +31,13 @@ class YamlModelSpec : BehaviorSpec() {
         facts["user.checking.ending_balance"] = BigDecimal.valueOf(2000)
         facts["user.savings.ending_balance"] = BigDecimal.valueOf(300)
         facts["user.unlinked_cash"] = BigDecimal.valueOf(500)
-        facts["user.life_insurance.coverage_amount"] = 10000
+        facts["user.life_insurance.coverage_amount"] = 100000
 
         println("Memory Used: ${Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()}")
         val evaluator = ModelEvaluator(facts.keys, modelInputs.values, tables)
 
-        var inputValues: Map<String, Any?> = mapOf()
-        inputValues = evaluator.evaluateInputs(facts)
-        inputValues.forEach { s, any -> println("$s: $any") }
+        var inputValues = evaluator.evaluateInputs(facts)
+        inputValues.forEach { entry -> println("${entry.key}: ${entry.value}") }
         println("Average Evaluation time: ${evaluator.evaluationTime / evaluator.evaluationCount}")
         println("Average Collection time: ${evaluator.collectionTime / evaluator.evaluationCount}")
 
@@ -45,10 +45,10 @@ class YamlModelSpec : BehaviorSpec() {
         facts["user.is_smoker"] = true
         facts["user.unlinked_cash"] = BigDecimal.valueOf(1000)
 
-        inputValues = evaluator.evaluateInputs(facts)
+        evaluator.evaluateInputs(facts)
         inputValues = evaluator.evaluateInputs(facts)
 
-        inputValues.forEach { s, any -> println("$s: $any") }
+        inputValues.forEach { entry -> println("${entry.key}: ${entry.value}") }
 
         println("Setup time: ${evaluator.setupTime}")
         println("Average Evaluation time: ${evaluator.evaluationTime / evaluator.evaluationCount}")
@@ -58,10 +58,10 @@ class YamlModelSpec : BehaviorSpec() {
         evaluator.writeToFile("yamlone.xlsx")
     }
 
-    private fun createModelInputs(inputs: Collection<Map<String,out Any>>): Map<String, ModelInput> {
+    private fun createModelInputs(inputs: Collection<YamlInputData>): Map<String, ModelInput> {
         val modelInputs = mutableMapOf<String, ModelInput>()
         inputs.forEach {
-            val input = ModelInput(it["Name"].toString(), it["Formula"].toString())
+            val input = ModelInput(it.Name, it.Formula)
             modelInputs[input.name] = input
             println("Creating model input ${input.name}")
         }

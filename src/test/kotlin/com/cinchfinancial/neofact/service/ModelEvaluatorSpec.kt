@@ -95,7 +95,7 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         var inputValues : Map<String,Any?> = mapOf()
         inputValues = evaluator.evaluateInputs(facts)
         evaluator2.evaluateInputs(facts)
-        inputValues.forEach { s, any -> println("$s: $any") }
+        inputValues.forEach { entry -> println("${entry.key}: ${entry.value}") }
         println("Average Evaluation time: ${evaluator.evaluationTime/evaluator.evaluationCount}")
         println("Average Collection time: ${evaluator.collectionTime/evaluator.evaluationCount}")
 
@@ -112,7 +112,7 @@ class ModelEvaluatorSpec : SpringBehaviorSpec(NeoConfig::class.java) {
         inputValues = evaluator.evaluateInputs(facts)
         inputValues = evaluator.evaluateInputs(facts)
 
-        inputValues.forEach { s, any -> println("$s: $any") }
+        inputValues.forEach { entry -> println("${entry.key}: ${entry.value}") }
 
         println("Setup time: ${evaluator.setupTime}")
         println("Average Evaluation time: ${evaluator.evaluationTime/evaluator.evaluationCount}")

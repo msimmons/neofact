@@ -40,8 +40,8 @@ class ModelEvaluator(val factNames: Set<String>, val modelInputs: Collection<Mod
 
     init {
         setupTime = measureTimeMillis {
-            tables.forEach { name, table ->
-                addLookupTable(name, table)
+            tables.forEach { entry ->
+                addLookupTable(entry.key, entry.value)
             }
             var row = 0
             factNames.forEach { addNameToSheet(factSheet, row++, it) }

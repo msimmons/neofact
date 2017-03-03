@@ -1,44 +1,17 @@
 package com.cinchfinancial.neofact.service
 
 import java.math.BigDecimal
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 
-fun ruleset(init: RULESET.()->Unit) : RULESET {
-    val ruleset = RULESET()
-    ruleset.init()
-    return ruleset
-}
-
-fun inputs(init: INPUTS.() ->Unit) : Map<String, INPUT> {
-    val inputs = INPUTS()
-    inputs.init()
-    return inputs.inputs
-}
-
-class INPUT(val name: String) {
-
-    lateinit private var formula : () -> Any?
-
-    infix fun formula(formula: () -> Any?) : INPUT {
-        this.formula = formula
-        return this
-    }
-}
-
-class INPUTS {
-
-    val inputs = mutableMapOf<String, INPUT>()
-    val define =this
-
-    infix fun input(name: String) : INPUT {
-        val i = INPUT(name)
-        inputs.put(name, i)
-        return i
+fun model(init: MODEL.() -> Unit) : MODEL {
+    return MODEL().apply {
+        init()
     }
 }
 
 class STRATEGY(val name : String) {
     var explanation : String=""
-
     infix fun because(explanation: String) :STRATEGY {this.explanation=explanation; return this}
 }
 
@@ -50,6 +23,10 @@ class RULE {
 
     fun eval(eval: () -> Boolean) {
         statements.add(eval)
+    }
+
+    fun evaluate() : Boolean {
+        return statements.any { it.invoke() }
     }
 
     infix fun strategy(name : String) : STRATEGY {
@@ -77,27 +54,76 @@ class RULESET {
     }
 }
 
-class Facts(val facts: Map<String,Any?>) {
-    val fact1 : String? by facts
+class InputDelegate<T, V>(val formula: () -> Any?) {
+
+    lateinit var name : String
+
+    operator fun provideDelegate(thisRef: T, prop: KProperty<*>) : ReadOnlyProperty<T, V> {
+        name = prop.name
+        return object : ReadOnlyProperty<T,V> {
+            override fun getValue(thisRef: T, property: KProperty<*>): V {
+                return formula() as V
+            }
+        }
+    }
 }
 
-fun doit() {
+class MODEL {
 
-    val facts = Facts(mapOf<String, Any?>())
+    val facts = mutableMapOf<String, Any?>()
+    val rulesets = mutableListOf<RULESET>()
+    private val inputList = mutableSetOf<InputDelegate<*,*>>()
 
-    val mi = inputs {
-        define input "foo" formula {BigDecimal.ZERO}
-        define input "bar" formula {facts.fact1 == "helpme"}
+    fun ruleset(init: RULESET.() ->Unit) : RULESET {
+        return RULESET().apply {
+            init()
+            rulesets.add(this)
+        }
     }
 
-    ruleset {
-        rule {
-            eval {mi["ci.foobar"]==mi["ci.baz"] && false}
-            eval {true}
-            recommend strategy "something" because "it's good" because "reason2"
-            recommend against "other" because "it sucks"
-        }
-        rule {
+    fun <T, V> T.formula(formula: () -> Any?) : InputDelegate<T, V> {
+        return InputDelegate<T, V>(formula).apply { inputList.add(this) }
+    }
+
+    fun inputs() : Map<String, Any?> {
+        return inputList.associate { Pair(it.name, it.formula()) }
+    }
+
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+
+            val theModel = model {
+
+                // Facts
+                facts.putAll(mapOf("a_fact_name" to "a_fact_value", "another_fact" to listOf(BigDecimal.TEN, BigDecimal.ONE)))
+                val a_fact_name : String by facts
+                val another_fact : List<BigDecimal> by facts
+
+                // Inputs
+                val an_input : String by formula {a_fact_name}
+                val another_input : BigDecimal by formula { another_fact[0] }
+                val yet_another : BigDecimal by formula { another_fact.reduce { acc, bigDecimal -> acc+bigDecimal } }
+                val fancy_one : Boolean by formula {
+                    when(an_input) {
+                        null -> false
+                        else -> true
+                    }
+                }
+
+                // Rules
+                ruleset {
+                    rule {
+                        eval {  another_input == another_fact[1] }
+                    }
+                    rule {
+                        eval {  another_fact.size > 0 }
+                    }
+                }
+
+            }
+            println(theModel.inputs())
+            theModel.rulesets.forEach { it.rules.forEach { println(it.evaluate()) } }
         }
     }
 }
