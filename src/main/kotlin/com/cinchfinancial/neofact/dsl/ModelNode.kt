@@ -5,7 +5,11 @@ package com.cinchfinancial.neofact.dsl
  */
 class ModelNode {
 
-    val facts = mutableMapOf<String, Any?>()
+    val missingFacts = mutableSetOf<String>()
+    val facts = mutableMapOf<String, Any?>().withDefault { key->
+        missingFacts.add(key)
+        null
+    }
     private val inputSet = mutableSetOf<InputDelegate<*, *>>()
     val rules = mutableListOf<RuleNode>()
 
@@ -21,7 +25,16 @@ class ModelNode {
     }
 
     fun inputs() : Map<String, Any?> {
-        return inputSet.associate { Pair(it.name, it.formula()) }
+        return inputSet.associate {
+            val value = try{it.formula()} catch (e:Exception) {e.message}
+            Pair(it.name, value)
+        }
+    }
+
+    fun table(init: TableNode.()->Unit) : TableNode {
+        return TableNode().apply {
+            init()
+        }
     }
 }
 

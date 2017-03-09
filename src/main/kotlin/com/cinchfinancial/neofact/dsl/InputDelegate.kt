@@ -8,9 +8,9 @@ import kotlin.reflect.KProperty
  */
 class InputDelegate<T, V>(val formula: () -> V) {
 
-    lateinit var name : String
+    lateinit var name: String
 
-    operator fun provideDelegate(thisRef: T, prop: KProperty<*>) : ReadOnlyProperty<T, V> {
+    operator fun provideDelegate(thisRef: T, prop: KProperty<*>): ReadOnlyProperty<T, V> {
         name = prop.name
         return object : ReadOnlyProperty<T, V> {
             override fun getValue(thisRef: T, property: KProperty<*>): V {

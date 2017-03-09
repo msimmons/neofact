@@ -1,7 +1,10 @@
 package com.cinchfinancial.neofact.dsl
 
 import io.kotlintest.specs.BehaviorSpec
+import org.springframework.core.io.ClassPathResource
+import java.io.InputStreamReader
 import java.math.BigDecimal
+import javax.script.ScriptEngineManager
 
 /**
  * Created by mark on 3/4/17.
@@ -56,6 +59,7 @@ class DslSpec : BehaviorSpec() {
                 theModel.rules.firstOrNull { it.evaluate() }?.outcomes?.forEach {
                     println("${it.name} ${it.reason} ${it.recommended}")
                 }
+                println(theModel.inputs())
             }
 
             Then("Change the facts") {
@@ -64,7 +68,20 @@ class DslSpec : BehaviorSpec() {
                     println("${it.name} ${it.reason} ${it.recommended}")
                 }
                 theModel.rules.forEach { it.evaluate(); println(it.error) }
+                println(theModel.inputs())
+            }
+
+            Then("Remove a fact") {
+                theModel.facts.remove("another_fact")
+                println(theModel.inputs())
+                println(theModel.missingFacts)
             }
         }
+
+        Given("A model as a kts script") {
+            val engine = ScriptEngineManager().getEngineByExtension("kts")
+            engine.eval(InputStreamReader(ClassPathResource("dsl_model.kts").inputStream))
+        }
     }
+
 }

@@ -1,9 +1,6 @@
-
-import org.gradle.api.plugins.MavenPlugin
 import org.gradle.api.publish.plugins.PublishingPlugin
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.wrapper.Wrapper
-import org.gradle.script.lang.kotlin.*
 
 val kotlinVersion by project
 val gradleVersion by project
