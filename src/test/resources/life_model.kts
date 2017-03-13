@@ -5,21 +5,24 @@ import java.math.BigDecimal
 operator fun BigDecimal.plus(i : Int) : BigDecimal { return this.add(BigDecimal.valueOf(i.toLong())) }
 operator fun BigDecimal.div(i : Int) : BigDecimal { return this.divide(BigDecimal.valueOf(i.toLong())) }
 operator fun Int.invoke() : BigDecimal = BigDecimal.valueOf(this.toLong())
+fun Int.between(min: Int, max: Int) : Boolean = this >= min && this <  max
 
 model {
-  /**
-  facts["user.age"] = 25
-  facts["user.number_of_children"] = 1
-  facts["user.is_homeowner"] = true
-  facts["user.is_smoker"] = false
-  facts["user.checking.monthly_net_income"] = BigDecimal.valueOf(6133)
-  facts["user.checking.ending_balance"] = BigDecimal.valueOf(2000)
-  facts["user.savings.ending_balance"] = BigDecimal.valueOf(300)
-  facts["user.unlinked_cash"] = BigDecimal.valueOf(500)
-  facts["user.life_insurance.coverage_amount"] = 100000
-   */
 
   // Lookup Tables
+  val InsuranceCost = table {
+    //row("Insurance Cost @ $0.25MM", "Smoker", "NonSmoker")
+    row(25,55.71,27.53)
+    row(30,60.17,27.88)
+    row(35,67.42,29.98)
+    row(40,97.95,36.03)
+    row(45,156.80,51.62)
+    row(50,233.21,76.58)
+    row(55, 372.47, 121.28)
+    row(60, 555.73, 207.70)
+    row(65, 988.32, 347.67)
+  }
+
   val AgeGroupProtection = table {
     row(25, true, true, 4)
     row(25, true, false, 4)
@@ -44,21 +47,21 @@ model {
   }
 
   val LifeCoverageBuckets = table {
-    row(0, "r")
+    row(0.0, "r")
     row(0.5, "o")
-    row(1, "g")
+    row(1.0, "g")
   }
 
   // Facts
-  val user_age : Integer? by facts
-  val user_number_of_children : Integer? by facts
-  val user_is_homeowner : Boolean? by facts
-  val user_is_smoker : Boolean? by facts
-  val user_checking_monthly_net_income : BigDecimal by facts
-  val user_checking_ending_balance : BigDecimal by facts
-  val user_savings_ending_balance : BigDecimal by facts
-  val user_unlinked_cash : BigDecimal by facts
-  val user_life_insurance_coverage_amount : BigDecimal by facts
+  val user_age : Int by facts
+  val user_number_of_children : Int by facts
+  val user_is_homeowner : Boolean by facts
+  val user_is_smoker : Boolean by facts
+  val user_checking_monthly_net_income : Double by facts
+  val user_checking_ending_balance : Double by facts
+  val user_savings_ending_balance : Double by facts
+  val user_unlinked_cash : Double by facts
+  val user_life_insurance_coverage_amount : Double by facts
 
   // Inputs
   val Age by formula { user_age }
@@ -71,9 +74,15 @@ model {
   val SavingsBalance by formula { user_savings_ending_balance }
   val ReservesBalance by formula { user_unlinked_cash }
   val TotalCash by formula { CheckingBalance + SavingsBalance + ReservesBalance }
-  val LifeCoverageMultiple by formula { /*SUMIFS(index(Table_AgeGroupProtection,0,4),index(Table_AgeGroupProtection,0,1),5+CEILING(Age-5,10),index(Table_AgeGroupProtection,0,2),NumDependents>0,index(Table_AgeGroupProtection,0,3),IsHomeOwner)*/ BigDecimal.valueOf(0.5) }
-  val InsuranceCost25 by formula { /*VLOOKUP(CEILING(Age,5),Table_InsuranceCost,IF(IsSmoker,2,3),0)*/ 100()}
-  val LifeCoverageGap by formula { /*max(0,(MonthlyNetIncome*LifeCoverageMultiple-TotalCash-ExistingLifeCoverage).multiply(12))*/ 100()}
-  val LifeCoverageCost by formula { InsuranceCost25*LifeCoverageGap/250000 }
-  val LifeCoverageGrade by formula { LifeCoverageBuckets.data.find { it[0]== ExistingLifeCoverage/(ExistingLifeCoverage+LifeCoverageGap)}?.get(1) as String }
+  val LifeCoverageMultiple by formula { /*SUMIFS(index(Table_AgeGroupProtection,0,4),index(Table_AgeGroupProtection,0,1),5+CEILING(Age-5,10),index(Table_AgeGroupProtection,0,2),NumDependents>0,index(Table_AgeGroupProtection,0,3),IsHomeOwner)*/ 0.5 }
+  val InsuranceCost25 by formula { /*VLOOKUP(CEILING(Age,5),Table_InsuranceCost,IF(IsSmoker,2,3),0)*/
+    val f = InsuranceCost.data.first { (it[0] as Int).between(Age, Age+5) }?.get(if (IsSmoker) 1 else 2) as Double?
+  }
+  val LifeCoverageGap by formula { /*max(0,(MonthlyNetIncome*LifeCoverageMultiple-TotalCash-ExistingLifeCoverage).multiply(12))*/
+    maxOf(0.0, (MonthlyNetIncome*LifeCoverageMultiple-TotalCash-ExistingLifeCoverage)*12.0)
+  }
+  val LifeCoverageCost by formula { InsuranceCost25 ?: 0*LifeCoverageGap/250000 }
+  val LifeCoverageGrade by formula { /*VLOOKUP(ExistingLifeCoverage/(ExistingLifeCoverage+LifeCoverageGap),Tables_Life_Coverage_Buckets,2,1)*/
+    LifeCoverageBuckets.data.first { (it[0] as Double) >= ExistingLifeCoverage/(ExistingLifeCoverage+LifeCoverageGap)}?.get(1) as String?
+  }
 }

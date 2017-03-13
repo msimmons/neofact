@@ -23,6 +23,13 @@ class ScriptSpec : BehaviorSpec() {
             scriptEngine.eval(getJSFunction2())
             val m = invoker.invokeFunction("another", result) as ScriptObjectMirror
             println(ObjectMapper().writeValueAsString(m))
+
+            scriptEngine.eval(getJSBlock())
+            val model = scriptEngine["model"] as ScriptObjectMirror
+            println(model.keys)
+            model.callMember("funny", result)
+            println(model["table1"])
+            model.callMember("input3", result)
         }
     }
 
@@ -42,4 +49,21 @@ function another(r) {
    return m
 }
 """
+
+    fun getJSBlock() = """
+var model = {
+   table1: [
+      [1,2,3],
+      [3,4,5]
+   ],
+   prop1: "a property",
+   funny: function(r) {print(r.name)},
+   input2: function(r) {print(r.formula)},
+   input3: function(r) {
+      var subt = this.table1.filter(function(row){print(row[1]); return row[1]==4;})
+      print(subt[0][2])
+   }
+}
+"""
+
 }

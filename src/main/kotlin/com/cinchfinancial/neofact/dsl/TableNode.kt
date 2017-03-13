@@ -8,7 +8,7 @@ class TableNode() {
     val data = mutableListOf<List<Any>>()
 
     fun row(vararg columns : Any) {
-        data.add(listOf(columns))
+        data.add(columns.asList())
     }
 
 }
