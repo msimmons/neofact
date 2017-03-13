@@ -37,7 +37,12 @@ model {
 
     rule {
         eval { println(an_input); an_input?.length ?: 0 > 2 }
-        recommend outcome "FOOEY" because "WOWY"
+        recommend outcome "FOOEY" because "WOWY" attribute Pair("key", 3) options mapOf(
+            "key1" to 3,
+            "key2" to 34.5,
+            "key3" to yet_another
+        )
+
     }
 
 }
