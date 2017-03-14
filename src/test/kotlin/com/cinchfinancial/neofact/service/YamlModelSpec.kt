@@ -45,7 +45,6 @@ class YamlModelSpec : BehaviorSpec() {
         facts["user.is_smoker"] = true
         facts["user.unlinked_cash"] = BigDecimal.valueOf(1000)
 
-        evaluator.evaluateInputs(facts)
         inputValues = evaluator.evaluateInputs(facts)
 
         inputValues.forEach { entry -> println("${entry.key}: ${entry.value}") }
