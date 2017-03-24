@@ -10,13 +10,16 @@ model {
     // Inputs
     val an_input by formula { a_fact_name }
     val another_input by formula { another_fact[0] }
-    val yet_another by formula { another_fact.reduce { acc, bigDecimal -> acc + bigDecimal } }
+    val yet_another by formula {
+        another_fact?.reduce { acc, bigDecimal -> acc + bigDecimal }
+    }
     val fancy_one by formula {
         when (an_input) {
             null -> false
             else -> true
         }
     }
+    val is_it_null by formula { a_fact_name.length }
     val missing_fact_input by formula { missing_fact ?: false || a_fact_name.isEmpty() }
 
     // Rules
@@ -36,13 +39,23 @@ model {
     }
 
     rule {
-        eval { println(an_input); an_input?.length ?: 0 > 2 }
-        recommend outcome "FOOEY" because "WOWY" attribute Pair("key", 3) options mapOf(
-            "key1" to 3,
-            "key2" to 34.5,
-            "key3" to yet_another
-        )
+        eval { an_input.length ?: 0 > 2 }
+        recommend outcome "FOOEY" because "WOWY" options {
+            "key1" {3}
+            "key2" {34.5}
+            "key3" {yet_another}
+            "key4" {BigDecimal.TEN}
+        }
+    }
 
+    rule {
+        eval {true}
+        recommend outcome "O" options {
+            "key"  {3}
+            "key1" {10.0}
+            "key8" {"another options"}
+            "key9" { false }
+        }
     }
 
 }

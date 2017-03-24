@@ -10,6 +10,9 @@ import org.junit.runner.RunWith
  */
 @RunWith(JUnit4ClassRunner::class)
 class StringTest : BehaviorSpec() {
+
+    val x : Int = 0
+
     val data = table(
         headers("a", "b", "c"),
         row(1, 2, 3),
@@ -48,9 +51,4 @@ class StringTest : BehaviorSpec() {
             (a + b + c > 0) shouldBe true
         }
     }
-
-    @Test
-    fun foo()  {
-    }
-
 }

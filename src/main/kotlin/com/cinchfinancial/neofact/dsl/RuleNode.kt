@@ -5,8 +5,7 @@ package com.cinchfinancial.neofact.dsl
  */
 class RuleNode {
 
-    lateinit var formula : ()->Boolean
-        private set
+    private lateinit var formula : ()->Boolean
     val outcomes = mutableListOf<OutcomeNode>()
     var error : Exception? = null
         private set

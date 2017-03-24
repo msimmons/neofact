@@ -3,6 +3,7 @@ package com.cinchfinancial.neofact.dsl
 import io.kotlintest.specs.BehaviorSpec
 import org.springframework.core.io.ClassPathResource
 import java.io.InputStreamReader
+import java.math.BigDecimal
 import javax.script.ScriptEngineManager
 import kotlin.system.measureTimeMillis
 
@@ -30,7 +31,7 @@ class DslScriptSpec : BehaviorSpec() {
             val engine = factory.scriptEngine
             var model = ModelNode()
             val evalTime= measureTimeMillis {
-                model = engine.eval(InputStreamReader(ClassPathResource("life_model.kts").inputStream)) as ModelNode
+                model = engine.eval(InputStreamReader(ClassPathResource("dsl_model.kts").inputStream)) as ModelNode
             }
             val facts = mutableMapOf<String, Any>()
             facts["user_age"] = 25
@@ -43,12 +44,19 @@ class DslScriptSpec : BehaviorSpec() {
             facts["user_unlinked_cash"] = 500.00
             facts["user_life_insurance_coverage_amount"] = 0.00
             model.facts.putAll(facts)
+            model.facts.putAll(mapOf("a_fact_name" to "a_fact_value", "another_fact" to listOf(BigDecimal.TEN, BigDecimal.ONE)))
+            println(model.facts)
             val elapsed = measureTimeMillis {
                 println("${model.inputs()}")
             }
             println("Eval = $evalTime")
             println("Elapsed = $elapsed")
-            println("${model.rules}")
+            model.rules.forEach {
+                print(it.evaluate())
+                it.outcomes.forEach {
+                    println(" ${it.options()}")
+                }
+            }
             println("${model.missingFacts}")
         }
     }

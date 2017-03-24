@@ -5,7 +5,7 @@ package com.cinchfinancial.neofact.dsl
  */
 class OutcomeNode(val name : String, val recommended : Boolean = true) {
 
-    private val attributes = mutableMapOf<String,Any>()
+    private val optionMap = mutableMapOf<String,()->Any?>()
 
     var reason : String=""
 
@@ -14,17 +14,12 @@ class OutcomeNode(val name : String, val recommended : Boolean = true) {
         return this
     }
 
-    infix fun attribute(pair: Pair<String,Any>) : OutcomeNode {
-        this[pair.first] = pair.second
-        return this
+    infix fun options(setOptions: OutcomeNode.()-> Unit) {
+        this.apply { setOptions() }
     }
+    operator infix fun String.invoke(formula: ()->Any?) {optionMap.put(this, formula)}
 
-    infix fun options(map: Map<String,Any>) : OutcomeNode {
-        attributes.putAll(map)
-        return this
+    fun options() : Map<String, Any?> {
+        return optionMap.mapValues { it.value() }
     }
-
-    operator fun get(key: String) = attributes[key]
-    operator fun set(key: String, value: Any) { attributes[key] = value }
-    operator fun invoke(key: String, value: Any) {attributes[key] = value }
 }

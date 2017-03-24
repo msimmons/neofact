@@ -6,6 +6,7 @@ operator fun BigDecimal.plus(i : Int) : BigDecimal { return this.add(BigDecimal.
 operator fun BigDecimal.div(i : Int) : BigDecimal { return this.divide(BigDecimal.valueOf(i.toLong())) }
 operator fun Int.invoke() : BigDecimal = BigDecimal.valueOf(this.toLong())
 fun Int.between(min: Int, max: Int) : Boolean = this >= min && this <  max
+infix fun Double.B(scale:Int) : BigDecimal {return BigDecimal.valueOf(this).setScale(scale)}
 
 model {
 

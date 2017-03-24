@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository
  * Created by mark on 7/5/16.
  */
 @Repository
-interface OutcomeRepository : GraphRepository<Outcome> {
+open interface OutcomeRepository : GraphRepository<Outcome> {
 }

@@ -15,10 +15,12 @@ class JSScriptSpec : BehaviorSpec() {
     init {
 
         Given("A javascript block") {
+
             val scriptEngine = ScriptEngineManager().getEngineByName("nashorn")
             val evalTime= measureTimeMillis {
                 scriptEngine.eval(InputStreamReader(ClassPathResource("life_model.js").inputStream))
             }
+            println(scriptEngine.getBindings(200).keys)
             println("Evaluation: $evalTime")
             println(scriptEngine::class.java)
             val inputFacts = mutableMapOf<String, Any>()
@@ -45,6 +47,7 @@ class JSScriptSpec : BehaviorSpec() {
             inputs.keys.forEach {
                 println("$it = ${inputs[it]}")
             }
+
         }
     }
 

@@ -79,7 +79,11 @@ function LifeCoverageGrade() { /*VLOOKUP(ExistingLifeCoverage/(ExistingLifeCover
 
 function inputs() {
   return  {
-    Age: Age(),
+    Age: {
+       value: Age(),
+       type: "int",
+       estimated: false
+    },
     NumDependents: NumDependents(),
     ExistingLifeCoverage: ExistingLifeCoverage(),
     IsHomeOwner: IsHomeOwner(),
